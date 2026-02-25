@@ -85,6 +85,18 @@ Visit **http://localhost:3002** in your browser 🌐
 - Use dropdown in header: 🇬🇧 English or 🇸🇦 العربية
 - Voice will respond in selected language
 
+## ⌘K Command Palette
+
+1. Press **⌘K** (or Ctrl+K) anywhere in the dashboard
+2. Type "monitor", "ads", or "library"
+3. Select an action to jump to the corresponding dashboard
+
+## 📊 Dashboards
+
+- **Monitoring**: Track real-time events on a global map
+- **AI Ads**: Multi-step creative workflow for ad variations
+- **Prompt Library**: Browse and activate 500+ specialized agent behaviors
+
 ## ✅ Verify It's Working
 
 ### Check Backend Health

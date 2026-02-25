@@ -82,11 +82,27 @@ export default function ActionSearchBar({
       category: "Dashboards",
     },
     {
+      id: "prompt-library",
+      label: "Prompt Library",
+      icon: <Sparkles className="w-4 h-4" />,
+      description: "500+ pre-defined assets",
+      action: () => onNavigate?.("prompts/library"),
+      category: "Dashboards",
+    },
+    {
       id: "activity",
       label: "Activity Log",
       icon: <Activity className="w-4 h-4" />,
       description: "View smart activity log",
       action: () => onNavigate?.("activity"),
+      category: "Dashboards",
+    },
+    {
+      id: "ai-ads",
+      label: "AI Ads Creation",
+      icon: <Sparkles className="w-4 h-4" />,
+      description: "Multi-step creative workflow",
+      action: () => onNavigate?.("ads"),
       category: "Dashboards",
     },
     {

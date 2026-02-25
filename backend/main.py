@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 # API Routers
-from .api import sessions, chat, dashboard, tools, prompts, memory, folders, secrets, linkbio, voice, comms
+from .api import sessions, chat, dashboard, tools, prompts, memory, folders, secrets, linkbio, voice, comms, monitoring, ads
 
 load_dotenv()
 
@@ -30,6 +30,8 @@ app.include_router(secrets.router)
 app.include_router(linkbio.router)
 app.include_router(voice.router)
 app.include_router(comms.router)
+app.include_router(monitoring.router)
+app.include_router(ads.router)
 
 @app.get("/health")
 async def health():

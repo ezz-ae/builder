@@ -44,14 +44,19 @@ This will:
 
 ### Frontend (Next.js 15 + React 19)
 - **Interactive 3D grid** landing page (Three.js + OrbitControls)
-- **⌘K Command Palette** for action search
-- **Minimizable chat overlay** with voice I/O
-- **Real-time dashboards** for sessions, messages, prompts
+- **⌘K Command Palette** for action search (integrated into Dashboard)
+- **Minimizable chat overlay** with voice I/O (integrated into Dashboard)
+- **Real-time Monitoring Dashboard** with geographical visualization
+- **AI Ads Creation Workflow** for multi-modal ad generation
+- **Prompts UI Library** with 500+ pre-defined prompt assets
 - **Glassmorphic UI** with dark mode
 - **Tailwind CSS** styling
 
 ### Key Features
 - 🔐 **100% Local** - No cloud required
+- 📊 **Real-time Monitoring** - Track Bitcoin, call usage, and events on a live world map
+- 🎬 **AI Ads Creation** - Multi-step workflow for generating creative ad variations
+- 🧠 **Prompts UI Library** - Access 500+ specialized assets for advanced agent behavior
 - 🎮 **Interactive 3D Experience** - Spin the grid while chatting
 - 🧠 **9 Prompt Types** - Task, Learn, Roles, Schedule, Time Target, Debate, Interview, Forbidden Words, Read
 - 📊 **Session Management** - Archive/restore conversations
@@ -151,6 +156,15 @@ POST   /v1/prompts           # Create prompt
 PUT    /v1/prompts/{id}      # Update prompt
 DELETE /v1/prompts/{id}      # Delete prompt
 GET    /v1/dashboard/stats   # Dashboard statistics
+```
+
+### Monitoring & Ads
+```
+POST   /v1/monitoring/sessions  # Create monitoring session
+GET    /v1/monitoring/sessions  # List monitoring sessions
+POST   /v1/monitoring/sessions/{id}/stop # Stop monitoring
+POST   /v1/ads/campaigns        # Create AI Ads campaign
+POST   /v1/ads/campaigns/{id}/generate # Generate variations
 ```
 
 ### Voice (Optional)

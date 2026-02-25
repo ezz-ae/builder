@@ -1,17 +1,30 @@
 "use client"
 
+import { useState } from "react"
 import { useAgentStore } from "@/lib/store/agent-store"
+import { useRouter } from "next/navigation"
 import DashboardSidebar from "./DashboardSidebar"
+import ActionSearchBar from "../ActionSearchBar"
+import RemoteChat from "../RemoteChat"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { isSidebarCollapsed, setSidebarCollapsed } = useAgentStore((state) => ({
+  const router = useRouter()
+  const [isChatOpen, setIsChatOpen] = useState(false)
+  
+  const { isSidebarCollapsed, setSidebarCollapsed, sessionId } = useAgentStore((state) => ({
     isSidebarCollapsed: state.isSidebarCollapsed,
     setSidebarCollapsed: state.setSidebarCollapsed,
+    sessionId: state.sessionId
   }))
+
+  const handleNavigate = (route: string) => {
+    if (route === "overview") router.push("/dashboard")
+    else router.push(`/dashboard/${route}`)
+  }
 
   return (
     <div className="flex h-screen w-full bg-[#080808]">
@@ -22,27 +35,29 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       />
 
       {/* Main content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="h-14 border-b border-white/5 bg-[#080808]/50 backdrop-blur-lg flex items-center px-6">
-          <div className="flex-1" />
-          <div className="flex items-center gap-3">
-            <div className="text-xs text-white/25">
-              {new Date().toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
-            </div>
-          </div>
+      <main className="flex-1 flex flex-col overflow-hidden relative">
+        {/* Command Bar (Floating at top) */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4">
+          <ActionSearchBar 
+            onNavigate={handleNavigate}
+            onToggleChat={() => setIsChatOpen(!isChatOpen)}
+          />
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto scrollbar-none">
+        <div className="flex-1 overflow-y-auto scrollbar-none pt-20">
           <div className="p-6 max-w-7xl mx-auto">
             {children}
           </div>
         </div>
+
+        {/* Chat Overlay */}
+        <RemoteChat 
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          onToggle={() => setIsChatOpen(!isChatOpen)}
+          sessionId={sessionId || undefined}
+        />
       </main>
     </div>
   )
