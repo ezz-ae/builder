@@ -78,6 +78,26 @@ const NeighborhoodInfoBlock = lazy(() =>
   import("./blocks/specialized-re-blocks").then((m) => ({ default: m.NeighborhoodInfoBlock })),
 )
 
+// Info and CTA blocks
+const FAQBlock = lazy(() =>
+  import("./blocks/info-cta-blocks").then((m) => ({ default: m.FAQBlock })),
+)
+const WhyChooseUsBlock = lazy(() =>
+  import("./blocks/info-cta-blocks").then((m) => ({ default: m.WhyChooseUsBlock })),
+)
+const BlogGridBlock = lazy(() =>
+  import("./blocks/info-cta-blocks").then((m) => ({ default: m.BlogGridBlock })),
+)
+const CTABannerBlock = lazy(() =>
+  import("./blocks/info-cta-blocks").then((m) => ({ default: m.CTABannerBlock })),
+)
+const ContactFormBuilderBlock = lazy(() =>
+  import("./blocks/info-cta-blocks").then((m) => ({ default: m.ContactFormBuilderBlock })),
+)
+const MarketMetricsBlock = lazy(() =>
+  import("./blocks/info-cta-blocks").then((m) => ({ default: m.MarketMetricsBlock })),
+)
+
 // Map component names to actual components
 const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   HeroBlock,
@@ -104,6 +124,12 @@ const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   LuxuryAmenitiesBlock,
   AgentCredentialsBlock,
   NeighborhoodInfoBlock,
+  FAQBlock,
+  WhyChooseUsBlock,
+  BlogGridBlock,
+  CTABannerBlock,
+  ContactFormBuilderBlock,
+  MarketMetricsBlock,
 }
 
 interface BlockRendererProps {
