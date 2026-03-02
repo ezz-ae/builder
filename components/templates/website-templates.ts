@@ -5,6 +5,7 @@
  */
 
 import type { WebsiteTemplate } from "../types"
+import { SPECIALIZED_TEMPLATES as NEW_SPECIALIZED_TEMPLATES } from "./specialized-templates"
 
 // ============================================
 // PREMIUM / LUXURY REAL ESTATE TEMPLATES (4)
@@ -517,6 +518,7 @@ export const ALL_WEBSITE_TEMPLATES = [
   ...MAINSTREAM_TEMPLATES,
   ...SPECIALIZED_TEMPLATES,
   ...INDUSTRY_TEMPLATES,
+  ...NEW_SPECIALIZED_TEMPLATES,
 ]
 
 export const WEBSITE_TEMPLATES_COUNT = ALL_WEBSITE_TEMPLATES.length

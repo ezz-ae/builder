@@ -98,6 +98,29 @@ const MarketMetricsBlock = lazy(() =>
   import("./blocks/info-cta-blocks").then((m) => ({ default: m.MarketMetricsBlock })),
 )
 
+// Specialized template blocks
+const AIChatBlock = lazy(() =>
+  import("./blocks/specialized-template-blocks").then((m) => ({ default: m.AIChatBlock })),
+)
+const InteractiveMapBlock = lazy(() =>
+  import("./blocks/specialized-template-blocks").then((m) => ({ default: m.InteractiveMapBlock })),
+)
+const RentalFeaturesBlock = lazy(() =>
+  import("./blocks/specialized-template-blocks").then((m) => ({ default: m.RentalFeaturesBlock })),
+)
+const ProductLaunchBlock = lazy(() =>
+  import("./blocks/specialized-template-blocks").then((m) => ({ default: m.ProductLaunchBlock })),
+)
+const LimitedOfferBlock = lazy(() =>
+  import("./blocks/specialized-template-blocks").then((m) => ({ default: m.LimitedOfferBlock })),
+)
+const PropertyReportBlock = lazy(() =>
+  import("./blocks/specialized-template-blocks").then((m) => ({ default: m.PropertyReportBlock })),
+)
+const InvestmentMetricsBlock = lazy(() =>
+  import("./blocks/specialized-template-blocks").then((m) => ({ default: m.InvestmentMetricsBlock })),
+)
+
 // Map component names to actual components
 const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   HeroBlock,
@@ -130,6 +153,13 @@ const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   CTABannerBlock,
   ContactFormBuilderBlock,
   MarketMetricsBlock,
+  AIChatBlock,
+  InteractiveMapBlock,
+  RentalFeaturesBlock,
+  ProductLaunchBlock,
+  LimitedOfferBlock,
+  PropertyReportBlock,
+  InvestmentMetricsBlock,
 }
 
 interface BlockRendererProps {
