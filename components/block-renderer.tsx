@@ -24,6 +24,60 @@ const ListingDetailBlock = lazy(() =>
   import("./blocks/listing-detail-block").then((m) => ({ default: m.ListingDetailBlock })),
 )
 
+// Gallery blocks
+const GalleryGridBlock = lazy(() =>
+  import("./blocks/gallery-blocks").then((m) => ({ default: m.GalleryGridBlock })),
+)
+const CarouselBlock = lazy(() =>
+  import("./blocks/gallery-blocks").then((m) => ({ default: m.CarouselBlock })),
+)
+const BeforeAfterBlock = lazy(() =>
+  import("./blocks/gallery-blocks").then((m) => ({ default: m.BeforeAfterBlock })),
+)
+const VirtualTourBlock = lazy(() =>
+  import("./blocks/gallery-blocks").then((m) => ({ default: m.VirtualTourBlock })),
+)
+const VideoHeroBlock = lazy(() =>
+  import("./blocks/gallery-blocks").then((m) => ({ default: m.VideoHeroBlock })),
+)
+
+// Feature blocks
+const PropertyFeaturesBlock = lazy(() =>
+  import("./blocks/feature-blocks").then((m) => ({ default: m.PropertyFeaturesBlock })),
+)
+const PropertySpecsBlock = lazy(() =>
+  import("./blocks/feature-blocks").then((m) => ({ default: m.PropertySpecsBlock })),
+)
+const MortgageCalculatorBlock = lazy(() =>
+  import("./blocks/feature-blocks").then((m) => ({ default: m.MortgageCalculatorBlock })),
+)
+const PriceBreakdownBlock = lazy(() =>
+  import("./blocks/feature-blocks").then((m) => ({ default: m.PriceBreakdownBlock })),
+)
+const ProcessStepsBlock = lazy(() =>
+  import("./blocks/feature-blocks").then((m) => ({ default: m.ProcessStepsBlock })),
+)
+const SimilarPropertiesBlock = lazy(() =>
+  import("./blocks/feature-blocks").then((m) => ({ default: m.SimilarPropertiesBlock })),
+)
+
+// Specialized real estate blocks
+const OpenHouseBlock = lazy(() =>
+  import("./blocks/specialized-re-blocks").then((m) => ({ default: m.OpenHouseBlock })),
+)
+const InvestmentAnalysisBlock = lazy(() =>
+  import("./blocks/specialized-re-blocks").then((m) => ({ default: m.InvestmentAnalysisBlock })),
+)
+const LuxuryAmenitiesBlock = lazy(() =>
+  import("./blocks/specialized-re-blocks").then((m) => ({ default: m.LuxuryAmenitiesBlock })),
+)
+const AgentCredentialsBlock = lazy(() =>
+  import("./blocks/specialized-re-blocks").then((m) => ({ default: m.AgentCredentialsBlock })),
+)
+const NeighborhoodInfoBlock = lazy(() =>
+  import("./blocks/specialized-re-blocks").then((m) => ({ default: m.NeighborhoodInfoBlock })),
+)
+
 // Map component names to actual components
 const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   HeroBlock,
@@ -34,6 +88,22 @@ const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   AgentGridBlock,
   TestimonialsBlock,
   ListingDetailBlock,
+  GalleryGridBlock,
+  CarouselBlock,
+  BeforeAfterBlock,
+  VirtualTourBlock,
+  VideoHeroBlock,
+  PropertyFeaturesBlock,
+  PropertySpecsBlock,
+  MortgageCalculatorBlock,
+  PriceBreakdownBlock,
+  ProcessStepsBlock,
+  SimilarPropertiesBlock,
+  OpenHouseBlock,
+  InvestmentAnalysisBlock,
+  LuxuryAmenitiesBlock,
+  AgentCredentialsBlock,
+  NeighborhoodInfoBlock,
 }
 
 interface BlockRendererProps {
