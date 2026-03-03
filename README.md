@@ -89,6 +89,7 @@ http://localhost:3002
 1. `/templates` – explore the gallery of 29+ templates with thumbnails, tags, and quick links into the builder
 2. `/showcase` – preview full site demos built from page templates (home, listings, about, contact)
 3. `/ai-chat` – launch the AI chat builder and generate copy, keywords, follow-ups, and SEO content with Gemini
+4. `/inventory` – embed the Neon inventory/PF feed directly into your site or builder listings
 
 
 ## 📋 Available Templates

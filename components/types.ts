@@ -348,6 +348,21 @@ export interface ListingAnalysis {
   insights: string[]
 }
 
+export interface InventoryItem {
+  id: string
+  agencyId?: string
+  propertyName: string
+  address: string
+  price: number
+  beds?: number
+  baths?: number
+  sqft?: number
+  status?: string
+  heroImage?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
 export interface Agent {
   id: string
   agencyId: string

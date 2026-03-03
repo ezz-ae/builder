@@ -1,4 +1,5 @@
 import { Client } from "@neondatabase/serverless"
+import type { InventoryItem } from "@/components/types"
 
 export interface Property {
   id: string
@@ -157,6 +158,21 @@ const MOCK_WEBSITE: Website = {
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
 }
+
+const MOCK_INVENTORY: InventoryItem[] = MOCK_PROPERTIES.map((property) => ({
+  id: property.id,
+  agencyId: property.agencyId,
+  propertyName: property.address,
+  address: property.address,
+  price: property.price,
+  beds: property.beds,
+  baths: property.baths,
+  sqft: property.sqft,
+  status: property.status,
+  heroImage: property.images[0],
+  createdAt: property.createdAt,
+  updatedAt: property.updatedAt,
+}))
 
 const DATABASE_URL = process.env.DATABASE_URL?.trim()
 const DEFAULT_LIMIT = 50
@@ -572,4 +588,98 @@ export async function getAgencyStats(agencyId: string): Promise<AgencyStats> {
     totalAgents: agents.length,
     averagePrice: properties.length > 0 ? Math.round(properties.reduce((sum, prop) => sum + prop.price, 0) / properties.length) : 0,
   }
+}
+
+export interface InventoryFilter {
+  agencyId?: string
+  status?: string
+  limit?: number
+}
+
+function normalizeInventoryRow(row: Record<string, unknown>, agencyId?: string): InventoryItem {
+  const createdAt = row.created_at || row.createdAt || new Date().toISOString()
+  const updatedAt = row.updated_at || row.updatedAt || new Date().toISOString()
+  const propertyName =
+    (row.project_name as string) ||
+    (row.property_name as string) ||
+    (row.name as string) ||
+    (row.title as string) ||
+    (row.address as string) ||
+    "Inventory Item"
+  const heroImage = (row.hero_image_url as string) || (row.hero_image as string) || (row.cover_image as string)
+
+  return {
+    id: String(row.id ?? row.project_id ?? `${propertyName.toLowerCase().replace(/\s+/g, "-")}-${Math.random().toString(16).slice(2)}`),
+    agencyId: String(row.agency_id ?? row.agencyId ?? agencyId ?? "demo-agency"),
+    propertyName,
+    address: String(row.address ?? ""),
+    price: Number(row.price ?? row.list_price ?? 0),
+    beds: Number(row.beds ?? row.bedrooms ?? 0) || undefined,
+    baths: Number(row.baths ?? row.bathrooms ?? 0) || undefined,
+    sqft: Number(row.sqft ?? row.square_feet ?? row.size ?? 0) || undefined,
+    status: String(row.status ?? row.inventory_status ?? "active"),
+    heroImage: heroImage || undefined,
+    createdAt: new Date(createdAt as string).toISOString(),
+    updatedAt: new Date(updatedAt as string).toISOString(),
+  }
+}
+
+async function queryInventoryFromTable(table: string, filters: InventoryFilter): Promise<InventoryItem[]> {
+  if (!DATABASE_URL) {
+    return []
+  }
+
+  const client = await getClient()
+  const clauses: string[] = []
+  const values: unknown[] = []
+
+  if (filters.agencyId) {
+    values.push(filters.agencyId)
+    clauses.push(`agency_id = $${values.length}`)
+  }
+
+  if (filters.status) {
+    values.push(filters.status)
+    clauses.push(`status = $${values.length}`)
+  }
+
+  const limit = filters.limit ?? DEFAULT_LIMIT
+  const whereClause = clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : ""
+  const query = `
+    SELECT id, agency_id, project_name, property_name, name, address, price, beds, bedrooms, baths, bathrooms, sqft, square_feet, size,
+      status, inventory_status, hero_image_url, hero_image, cover_image, created_at, updated_at
+    FROM ${table}
+    ${whereClause}
+    ORDER BY updated_at DESC NULLS LAST
+    LIMIT $${values.length + 1}
+  `
+  values.push(limit)
+
+  try {
+    const { rows } = await client.query(query, values)
+    return rows.map((row) => normalizeInventoryRow(row, filters.agencyId))
+  } catch (error) {
+    console.error(`Neon query error (${table}):`, error)
+    return []
+  }
+}
+
+async function queryInventoryFromNeon(filters: InventoryFilter): Promise<InventoryItem[]> {
+  const tables = ["inventory_full", "entrestaet_master", "pf_inventory", "projects"]
+  for (const table of tables) {
+    const rows = await queryInventoryFromTable(table, filters)
+    if (rows.length > 0) {
+      return rows
+    }
+  }
+  return []
+}
+
+export async function getInventoryItems(filters: InventoryFilter = {}): Promise<InventoryItem[]> {
+  const dbResults = await queryInventoryFromNeon(filters)
+  if (dbResults.length > 0) {
+    return dbResults
+  }
+
+  return MOCK_INVENTORY.slice(0, filters.limit ?? DEFAULT_LIMIT)
 }

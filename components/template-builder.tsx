@@ -10,6 +10,7 @@ import {
   FileText, Pencil, Monitor, Smartphone, X, Search,
   ArrowLeft, LayoutGrid, Zap, Check, Copy
 } from "lucide-react"
+import { InventoryPreview } from "./inventory-preview"
 
 interface TemplateBuilderProps {
   onSave?: (website: Website) => void
@@ -948,6 +949,10 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6">
+        <InventoryPreview limit={4} />
       </div>
 
       {/* Grid */}
