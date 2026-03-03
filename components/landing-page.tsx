@@ -74,6 +74,12 @@ const PUBLIC_EXPERIENCES = [
     href: "/ai-chat",
     badge: "AI",
   },
+  {
+    title: "Market Analysis",
+    description: "Generate market metrics and insights from Neon inventory data.",
+    href: "/market-analysis",
+    badge: "Insights",
+  },
 ]
 
 export function LandingPage() {
@@ -302,7 +308,7 @@ export function LandingPage() {
               Explore the same templates, AI chat, and ready-made pages your clients will see once they publish.
             </p>
           </div>
-          <div className="grid gap-6 md:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {PUBLIC_EXPERIENCES.map((experience) => (
               <a
                 key={experience.title}

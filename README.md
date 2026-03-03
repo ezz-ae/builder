@@ -91,6 +91,7 @@ http://localhost:3002
 2. `/showcase` – preview full site demos built from page templates (home, listings, about, contact)
 3. `/ai-chat` – launch the AI chat builder and generate copy, keywords, follow-ups, and SEO content with Gemini
 4. `/inventory` – embed the Neon inventory/PF feed directly into your site or builder listings
+5. `/market-analysis` – generate market metrics and insights for the Market Metrics block
 
 
 ## 📋 Available Templates

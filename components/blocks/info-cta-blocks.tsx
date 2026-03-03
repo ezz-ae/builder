@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import type { WebsiteSettings } from "../types"
 
 /**
@@ -391,17 +391,39 @@ export function MarketMetricsBlock({
     { label: "Active Buyers", value: "15K+", trend: "↑ 23%" },
   ],
   backgroundColor = "from-slate-900 to-slate-800",
+  address,
+  price,
   data,
   settings,
 }: {
   title?: string
   metrics?: Array<{ label: string; value: string; trend?: string }>
   backgroundColor?: string
+  address?: string
+  price?: number
   data?: Record<string, unknown>
   settings?: WebsiteSettings
 }) {
+  const [liveMetrics, setLiveMetrics] = useState<Array<{ label: string; value: string; trend?: string }> | null>(
+    null,
+  )
+  const [isLoading, setIsLoading] = useState(false)
+
   const formatPrice = (value: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value)
+
+  const resolvedAddress =
+    address ||
+    (typeof data?.listing === "object" && data?.listing && "address" in data.listing ? (data.listing as Record<string, unknown>).address as string : undefined) ||
+    (typeof data?.address === "string" ? data.address : undefined) ||
+    (typeof data?.agency === "object" && data?.agency && "address" in data.agency ? (data.agency as Record<string, unknown>).address as string : undefined)
+
+  const resolvedPrice =
+    typeof price === "number"
+      ? price
+      : typeof data?.listing === "object" && data?.listing && "price" in data.listing
+        ? Number((data.listing as Record<string, unknown>).price)
+        : undefined
 
   const resolveMetrics = () => {
     const directMetrics = (data?.marketMetrics as Array<{ label: string; value: string; trend?: string }>) ?? null
@@ -444,12 +466,52 @@ export function MarketMetricsBlock({
     return metrics
   }
 
-  const resolvedMetrics = resolveMetrics()
+  useEffect(() => {
+    const hasInlineData = Boolean(data?.marketMetrics || data?.marketInsights || data?.marketAnalysis)
+    if (hasInlineData || !resolvedAddress) return
+
+    const controller = new AbortController()
+
+    async function loadMarketMetrics() {
+      setIsLoading(true)
+      try {
+        const params = new URLSearchParams({ address: resolvedAddress })
+        if (typeof resolvedPrice === "number" && Number.isFinite(resolvedPrice)) {
+          params.set("price", String(resolvedPrice))
+        }
+        const response = await fetch(`/api/market-analysis?${params.toString()}`, {
+          signal: controller.signal,
+        })
+        const payload = await response.json()
+        if (payload?.success && Array.isArray(payload?.data?.marketMetrics)) {
+          setLiveMetrics(payload.data.marketMetrics)
+        }
+      } catch (error) {
+        if ((error as Error).name !== "AbortError") {
+          console.error("Market metrics fetch failed:", error)
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadMarketMetrics()
+
+    return () => controller.abort()
+  }, [data, resolvedAddress, resolvedPrice])
+
+  const resolvedMetrics = liveMetrics ?? resolveMetrics()
 
   return (
     <section className={`w-full py-16 px-4 md:px-8 bg-gradient-to-br ${backgroundColor}`}>
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-12">{title}</h2>
+
+        {isLoading && (
+          <p className="text-center text-xs uppercase tracking-[0.3em] text-white/70 mb-6">
+            Loading market analysis...
+          </p>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {resolvedMetrics.map((metric, idx) => (

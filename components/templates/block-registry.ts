@@ -292,6 +292,8 @@ const SPECIALIZED_BLOCKS: BlockTemplate[] = [
     defaultProps: {
       title: "Market Intelligence",
       backgroundColor: "from-slate-900 to-slate-800",
+      address: "Dubai Marina, Dubai",
+      price: 2500000,
     },
     dataBindings: [
       {
