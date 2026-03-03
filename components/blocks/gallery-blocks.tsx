@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import Image from "next/image"
 import type { WebsiteSettings } from "../types"
 
@@ -21,7 +21,7 @@ export function GalleryGridBlock({
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   // Get images from data binding or use defaults
-  const images = (data?.["listings"]?.images || data?.["property"]?.images || [
+  const images = ((data?.["listings"] as Record<string, unknown>)?.images || (data?.["property"] as Record<string, unknown>)?.images || [
     "/placeholder-1.jpg",
     "/placeholder-2.jpg",
     "/placeholder-3.jpg",
@@ -119,10 +119,10 @@ export function CarouselBlock({
   settings?: WebsiteSettings
 }) {
   const [currentIndex, setCurrentIndex] = useState(0)
-  const autoplayRef = useRef<NodeJS.Timeout>()
+  const autoplayRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   // Get images from data binding or use defaults
-  const images = (data?.["listing"]?.images || data?.["listings"]?.images || [
+  const images = ((data?.["listing"] as Record<string, unknown>)?.images || (data?.["listings"] as Record<string, unknown>)?.images || [
     "/placeholder-hero-1.jpg",
     "/placeholder-hero-2.jpg",
     "/placeholder-hero-3.jpg",
@@ -154,7 +154,7 @@ export function CarouselBlock({
     startAutoplay()
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     startAutoplay()
     return () => stopAutoplay()
   }, [autoplay])

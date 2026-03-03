@@ -187,7 +187,7 @@ function BlockLibraryItem({ block, isFavorite, onAdd, onToggleFavorite }: BlockL
         {/* Meta */}
         <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-3">
           <span>{block.category}</span>
-          {block.responsive && <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs font-medium">Responsive</span>}
+          {(block as BlockTemplate & { responsive?: boolean }).responsive && <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs font-medium">Responsive</span>}
         </div>
       </div>
 

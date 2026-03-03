@@ -91,8 +91,9 @@ export interface BackgroundConfig {
   imageUrl: string
   imagePosition: "cover" | "contain" | "center"
   imageBlur: number
+  blur?: number
   overlay: {
-    enabled: boolean
+    enabled?: boolean
     color: string
     opacity: number
   }
@@ -101,6 +102,7 @@ export interface BackgroundConfig {
     color: string
     size: number
     opacity: number
+    backgroundColor?: string
   }
 }
 
@@ -137,10 +139,13 @@ export interface ProjectData {
  * e.g., bind price field to listings.price or agents.agentName
  */
 export interface DataBinding {
-  elementKey: string // Identifier for element in block (e.g., "title", "price", "mainImage")
-  dataPath: string // Path to data source (e.g., "listing.price", "agent.name")
-  type: "text" | "image" | "attribute" // What to bind
+  elementKey?: string // Identifier for element in block (e.g., "title", "price", "mainImage")
+  dataPath?: string // Path to data source (e.g., "listing.price", "agent.name")
+  type: "text" | "image" | "attribute" | "repeater" // What to bind
   formatFn?: string // Optional transform (e.g., "price" → "$123,456")
+  transformFn?: string // Alias for formatFn
+  propertyPath?: string // Optional specific property path
+  elementId?: string // Optional element identifier
 }
 
 /**
@@ -165,20 +170,29 @@ export interface BlockTemplate {
     | "about"
     | "faq"
     | "gallery"
-  component: string // React component name (e.g., "HeroBlock", "ListingsGridBlock")
-  requires: ("listings" | "listing" | "agents" | "agent" | "agency")[] // Data requirements
-  customizable: {
+    | "info"
+    | "form"
+    | "grid"
+    | "card"
+    | "agent"
+  component?: string // React component name (e.g., "HeroBlock", "ListingsGridBlock")
+  requires?: ("listings" | "listing" | "agents" | "agent" | "agency")[] // Data requirements
+  customizable?: {
     // Which props can be edited in the builder
     colors?: string[] // Can user change these color fields?
     text?: string[] // Can user edit these text fields?
     images?: string[] // Can user upload/change these images?
     settings?: string[] // Can user configure these settings?
   }
-  defaultProps: Record<string, unknown> // Default configuration
-  dataBindings: DataBinding[]
+  defaultProps?: Record<string, unknown> // Default configuration
+  dataBindings?: DataBinding[]
   previewImage?: string
   tags: string[]
-  createdAt: string
+  createdAt?: string
+  width?: string | number
+  minHeight?: string | number
+  responsive?: boolean
+  elements?: unknown[]
 }
 
 /**
@@ -187,7 +201,7 @@ export interface BlockTemplate {
 export interface BlockInstance {
   id: string
   blockTemplateId: string // Reference to BlockTemplate
-  position: number // Order on page (0 = top)
+  position?: number // Order on page (0 = top)
   props: Record<string, unknown> // Configuration overrides
   dataSource?: {
     // Where to fetch data for this block
@@ -203,11 +217,11 @@ export interface BlockInstance {
  * Renders as a real responsive website page (HTML+CSS)
  */
 export interface Page {
-  id: string
+  id?: string
   title: string
   slug: string // e.g., "home", "listings", "about-us"
   blocks: BlockInstance[] // Ordered list of blocks
-  seo: {
+  seo?: {
     metaDescription: string
     keywords: string[]
     title?: string
@@ -217,14 +231,20 @@ export interface Page {
     hideHeader?: boolean
     hideFooter?: boolean
   }
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 /**
  * Website Theme & Branding
  */
 export interface WebsiteSettings {
+  primaryColor?: string
+  secondaryColor?: string
+  accentColor?: string
+  fontFamily?: string
+  logoUrl?: string
+  logoText?: string
   colors: {
     primary: string
     secondary: string
@@ -251,12 +271,14 @@ export interface WebsiteSettings {
 export interface Website {
   id: string
   name: string
-  agencyId: string
+  agencyId?: string
   pages: Page[]
   settings: WebsiteSettings
   template?: string // Starter template used
-  createdAt: string
-  updatedAt: string
+  category?: string
+  description?: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 /**
@@ -267,12 +289,13 @@ export interface PageTemplate {
   id: string
   name: string
   description: string
-  category: "home" | "listings" | "listing-detail" | "about" | "contact" | "agent" | "gallery"
+  slug?: string
+  category: "home" | "listings" | "listing-detail" | "detail" | "about" | "contact" | "agent" | "gallery"
   thumbnail?: string
   blocks: BlockTemplate[] // The blocks that make up this page
   defaultSettings?: Partial<WebsiteSettings>
   tags: string[]
-  createdAt: string
+  createdAt?: string
 }
 
 /**
@@ -283,11 +306,12 @@ export interface WebsiteTemplate {
   id: string
   name: string
   description: string
-  pages: PageTemplate[] // Usually ~5-8 pages
+  category?: string
+  pages: (PageTemplate | string)[] // Full page templates or block IDs
   defaultSettings: WebsiteSettings
   tags: string[]
   thumbnail?: string
-  createdAt: string
+  createdAt?: string
 }
 
 /**

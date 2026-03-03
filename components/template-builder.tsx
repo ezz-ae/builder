@@ -29,7 +29,8 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
       setSelectedTemplate(templateId)
       setWebsite(template as Website)
       setStep("editor")
-      setSelectedPageSlug(template.pages[0]?.slug || "home")
+      const firstPage = template.pages[0]
+      setSelectedPageSlug((typeof firstPage === "object" ? firstPage?.slug : undefined) || "home")
     }
   }
 

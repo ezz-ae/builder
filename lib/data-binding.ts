@@ -3,7 +3,7 @@
  * Connects block elements to dynamic real estate data from Neon
  */
 
-import type { CanvasElement, DataBinding } from "@/components/real-estate-builder/types"
+import type { CanvasElement, DataBinding } from "@/components/types"
 import type { Property, Agent } from "./neon-client"
 
 export type BindingData = Property | Agent | Record<string, unknown> | unknown[]
@@ -69,11 +69,11 @@ export function bindElementData(
 ): CanvasElement {
   if (!data) return element
 
-  const value = getValueByPath(data, binding.propertyPath)
+  const value = getValueByPath(data, binding.propertyPath ?? binding.dataPath ?? "")
 
   if (!value) return element
 
-  const transformedValue = applyTransform(value, binding.transformFn)
+  const transformedValue = applyTransform(value, binding.transformFn ?? binding.formatFn)
 
   // Apply transformation based on binding type
   switch (binding.type) {
@@ -145,8 +145,9 @@ export function applyBindingsToElements(
     const relevantBindings = bindings.filter((b) => b.elementId === element.id)
 
     return relevantBindings.reduce((el, binding) => {
-      const bindingData = getValueByPath(data, binding.propertyPath.split(".")[0])
-      return bindElementData(el, binding, bindingData)
+      const path = (binding.propertyPath ?? binding.dataPath ?? "").split(".")[0]
+      const bindingData = getValueByPath(data, path)
+      return bindElementData(el, binding, bindingData as BindingData)
     }, element)
   })
 }
@@ -158,12 +159,13 @@ export function validateBinding(binding: DataBinding, data: BindingData): {
   valid: boolean
   error?: string
 } {
-  const value = getValueByPath(data, binding.propertyPath)
+  const path = binding.propertyPath ?? binding.dataPath ?? ""
+  const value = getValueByPath(data, path)
 
   if (value === undefined) {
     return {
       valid: false,
-      error: `Property path "${binding.propertyPath}" not found in data`,
+      error: `Property path "${path}" not found in data`,
     }
   }
 

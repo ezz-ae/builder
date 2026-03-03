@@ -194,7 +194,7 @@ export function BlockRenderer({
     )
   }
 
-  const Component = BLOCK_COMPONENTS[blockTemplate.component]
+  const Component = BLOCK_COMPONENTS[blockTemplate.component ?? ""]
 
   if (!Component) {
     return (

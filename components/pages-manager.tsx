@@ -42,11 +42,11 @@ export function PagesManager({
       updatedAt: new Date().toISOString(),
     }
     onAddPage(newPage)
-    onSelectPage(newPage.id)
+    onSelectPage(newPage.id!)
   }, [onAddPage, onSelectPage])
 
   const handleStartRename = (page: Page) => {
-    setRenamingPageId(page.id)
+    setRenamingPageId(page.id!)
     setNewPageTitle(page.title)
   }
 
@@ -77,28 +77,28 @@ export function PagesManager({
         <div className="divide-y divide-gray-200 dark:divide-gray-800">
           {website.pages.map((page) => (
             <div
-              key={page.id}
+              key={page.id!}
               className={`relative group ${
-                selectedPageId === page.id
+                selectedPageId === page.id!
                   ? "bg-blue-50 dark:bg-blue-950 border-l-2 border-blue-500"
                   : "hover:bg-gray-100 dark:hover:bg-gray-800"
               }`}
             >
               {/* Page Row */}
               <div
-                onClick={() => onSelectPage(page.id)}
+                onClick={() => onSelectPage(page.id!)}
                 className="px-4 py-3 cursor-pointer flex items-center justify-between"
               >
                 <div className="flex-1 min-w-0">
-                  {renamingPageId === page.id ? (
+                  {renamingPageId === page.id! ? (
                     <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="text"
                         value={newPageTitle}
                         onChange={(e) => setNewPageTitle(e.target.value)}
-                        onBlur={() => handleSaveRename(page.id)}
+                        onBlur={() => handleSaveRename(page.id!)}
                         onKeyDown={(e) => {
-                          if (e.key === "Enter") handleSaveRename(page.id)
+                          if (e.key === "Enter") handleSaveRename(page.id!)
                           if (e.key === "Escape") setRenamingPageId(null)
                         }}
                         className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-white flex-1"
@@ -132,13 +132,13 @@ export function PagesManager({
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      setExpandedMenuId(expandedMenuId === page.id ? null : page.id)
+                      setExpandedMenuId(expandedMenuId === page.id! ? null : page.id!)
                     }}
                     className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
                   >
                     <ChevronDown
                       className={`w-4 h-4 text-gray-600 dark:text-gray-400 transition-transform ${
-                        expandedMenuId === page.id ? "rotate-180" : ""
+                        expandedMenuId === page.id! ? "rotate-180" : ""
                       }`}
                     />
                   </button>
@@ -146,13 +146,13 @@ export function PagesManager({
               </div>
 
               {/* Expanded Menu */}
-              {expandedMenuId === page.id && (
+              {expandedMenuId === page.id! && (
                 <div
                   className="bg-gray-100 dark:bg-gray-800 px-4 py-2 flex gap-2 border-t border-gray-200 dark:border-gray-700"
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Button
-                    onClick={() => onClonePage(page.id)}
+                    onClick={() => onClonePage(page.id!)}
                     size="sm"
                     variant="ghost"
                     className="flex-1 justify-start"
@@ -162,7 +162,7 @@ export function PagesManager({
                   </Button>
                   <Button
                     onClick={() => {
-                      onDeletePage(page.id)
+                      onDeletePage(page.id!)
                       setExpandedMenuId(null)
                     }}
                     size="sm"

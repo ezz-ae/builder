@@ -2,7 +2,7 @@
 
 import type { Listing, WebsiteSettings } from "../types"
 import { formatNumber } from "@/lib/data-binding"
-import { Bed, Bath, Ruler2, MapPin } from "lucide-react"
+import { Bed, Bath, Ruler, MapPin } from "lucide-react"
 
 interface ListingDetailBlockProps {
   settings: WebsiteSettings
@@ -68,7 +68,7 @@ export function ListingDetailBlock({
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <Ruler2 className="w-5 h-5" style={{ color: settings.colors.primary }} />
+                  <Ruler className="w-5 h-5" style={{ color: settings.colors.primary }} />
                   <span className="text-gray-600">Sqft</span>
                 </div>
                 <p className="text-3xl font-bold">{formatNumber(listing.sqft)}</p>
