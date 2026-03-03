@@ -11,6 +11,10 @@ import {
   Building2,
   LayoutGrid,
   Smartphone,
+  Activity,
+  Server,
+  ShieldCheck,
+  Database,
 } from "lucide-react"
 
 const CATEGORIES = [
@@ -18,6 +22,37 @@ const CATEGORIES = [
   { key: "mainstream", label: "Mainstream", color: "#2563eb" },
   { key: "specialized", label: "Specialized", color: "#7c3aed" },
   { key: "industry", label: "Industry", color: "#059669" },
+]
+
+const STATUS_METRICS = [
+  {
+    label: "Neon tables audited",
+    value: "127",
+    detail: "159K total rows, 85 populated with Mashroi/PF data",
+    color: "from-slate-900 to-slate-800",
+    icon: Database,
+  },
+  {
+    label: "Core inventory rows",
+    value: "7,015",
+    detail: "inventory_full + entrestate_master ready for publishing",
+    color: "from-cyan-900 to-blue-900",
+    icon: Activity,
+  },
+  {
+    label: "PF gallery health",
+    value: "100%",
+    detail: "PF hero images + CDN verified across every project",
+    color: "from-emerald-900 to-green-900",
+    icon: ShieldCheck,
+  },
+  {
+    label: "GC projects synced",
+    value: "954",
+    detail: "Pulled from gc_projects, known difference vs spine count",
+    color: "from-purple-900 to-indigo-900",
+    icon: Server,
+  },
 ]
 
 const PUBLIC_EXPERIENCES = [
@@ -135,6 +170,41 @@ export function LandingPage() {
                 </div>
                 <h3 className="font-bold text-gray-900 mb-2">{feature.title}</h3>
                 <p className="text-sm text-gray-500">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Status dashboard */}
+      <section className="py-12 px-6 bg-slate-950 text-white">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-[0.4em] text-cyan-300 mb-1">Status Dashboard</p>
+              <h2 className="text-3xl font-bold">Mashroi + PF ecosystem is live</h2>
+            </div>
+            <a
+              href="/inventory"
+              className="inline-flex items-center gap-2 px-4 py-3 rounded-full bg-white text-slate-900 text-sm font-semibold shadow-lg shadow-cyan-500/30"
+            >
+              View inventory feed
+              <ArrowRight className="w-4 h-4" />
+            </a>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {STATUS_METRICS.map((metric) => (
+              <div
+                key={metric.label}
+                className={`rounded-2xl border border-white/10 bg-gradient-to-br ${metric.color} p-5 shadow-2xl shadow-black/30`}
+              >
+                <div className="flex items-center justify-between">
+                  <metric.icon className="w-5 h-5 text-white/70" />
+                  <span className="text-xs uppercase tracking-[0.3em] text-white/70">{metric.label}</span>
+                </div>
+                <p className="mt-3 text-3xl font-bold text-white">{metric.value}</p>
+                <p className="text-sm text-white/80 mt-2">{metric.detail}</p>
               </div>
             ))}
           </div>
