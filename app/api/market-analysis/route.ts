@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getAreaInsights, getListingAnalysis } from "@/lib/entrestate-api"
+import { getMarketInsights, getMarketListingAnalysis } from "@/lib/neon-client"
 
 function formatPrice(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value)
@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
     }
 
     const [marketInsights, listingAnalysis] = await Promise.all([
-      getAreaInsights(address),
-      price && Number.isFinite(price) ? getListingAnalysis(address, price) : Promise.resolve(null),
+      getMarketInsights(address),
+      price && Number.isFinite(price) ? getMarketListingAnalysis(address, price) : Promise.resolve(null),
     ])
 
     const metrics = [

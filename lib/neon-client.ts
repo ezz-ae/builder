@@ -54,6 +54,29 @@ export interface Website {
   updatedAt: string
 }
 
+export interface MarketInsights {
+  marketTrend: string
+  averagePrice: number
+  priceRange: { min: number; max: number }
+  populationGrowth: number
+  averageDaysOnMarket: number
+  schoolRating?: number
+  crimeRate?: string
+  walkscore?: number
+  topNeighborhoodTraits: string[]
+}
+
+export interface ListingAnalysis {
+  pricePerSqft: number
+  priceHistory: Array<{ date: string; price: number }>
+  marketTrend: "up" | "stable" | "down"
+  daysOnMarket: number
+  priceReduction?: number
+  similarListings: number
+  investmentScore?: number
+  insights: string[]
+}
+
 const MOCK_PROPERTIES: Property[] = [
   {
     id: "prop-1",
@@ -682,4 +705,316 @@ export async function getInventoryItems(filters: InventoryFilter = {}): Promise<
   }
 
   return MOCK_INVENTORY.slice(0, filters.limit ?? DEFAULT_LIMIT)
+}
+
+const MARKET_TABLES = ["inventory_full", "pf_inventory"] as const
+const MARKET_COLUMN_CANDIDATES = {
+  address: ["address", "location", "project_name", "property_name", "name", "title", "community", "district", "area", "neighborhood", "city"],
+  price: ["price", "list_price", "listing_price", "ask_price"],
+  sqft: ["sqft", "square_feet", "size", "area_sqft"],
+  date: ["updated_at", "created_at", "listed_at", "listing_date", "last_updated"],
+  daysOnMarket: ["days_on_market", "dom"],
+}
+
+const marketColumnCache = new Map<string, Set<string>>()
+
+async function getTableColumns(table: string): Promise<Set<string>> {
+  const cached = marketColumnCache.get(table)
+  if (cached) return cached
+
+  if (!DATABASE_URL) {
+    return new Set()
+  }
+
+  const client = await getClient()
+  try {
+    const { rows } = await client.query(
+      `
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = $1
+      `,
+      [table],
+    )
+    const columns = new Set(rows.map((row) => String(row.column_name)))
+    marketColumnCache.set(table, columns)
+    return columns
+  } catch (error) {
+    console.error(`Neon schema error (${table}):`, error)
+    return new Set()
+  }
+}
+
+function buildTextCoalesceExpr(columns: Set<string>, candidates: string[]): string | null {
+  const available = candidates.filter((column) => columns.has(column))
+  if (available.length === 0) return null
+  const expressions = available.map((column) => `${column}::text`)
+  return expressions.length === 1 ? expressions[0] : `COALESCE(${expressions.join(", ")})`
+}
+
+function numericExpression(column: string): string {
+  return `NULLIF(regexp_replace(${column}::text, '[^0-9.]', '', 'g'), '')::numeric`
+}
+
+function buildNumericCoalesceExpr(columns: Set<string>, candidates: string[]): string | null {
+  const available = candidates.filter((column) => columns.has(column))
+  if (available.length === 0) return null
+  const expressions = available.map((column) => numericExpression(column))
+  return expressions.length === 1 ? expressions[0] : `COALESCE(${expressions.join(", ")})`
+}
+
+function buildDateCoalesceExpr(columns: Set<string>, candidates: string[]): string | null {
+  const available = candidates.filter((column) => columns.has(column))
+  if (available.length === 0) return null
+  const expressions = available.map((column) => `${column}::timestamptz`)
+  return expressions.length === 1 ? expressions[0] : `COALESCE(${expressions.join(", ")})`
+}
+
+function normalizeSearchTerm(address: string): string {
+  const trimmed = address.trim()
+  if (!trimmed) return ""
+  const parts = trimmed.split(",").map((part) => part.trim()).filter(Boolean)
+  if (parts.length > 0 && parts[0].length > 2) {
+    return parts[0]
+  }
+  return trimmed
+}
+
+function computeTrend(avgRecent?: number | null, avgPrev?: number | null) {
+  if (!avgRecent || !avgPrev || avgPrev === 0) {
+    return { label: "Stable pricing", direction: "stable" as const, changePct: 0 }
+  }
+  const changePct = ((avgRecent - avgPrev) / avgPrev) * 100
+  if (changePct > 3) {
+    return { label: `Rising prices (+${changePct.toFixed(1)}%)`, direction: "up" as const, changePct }
+  }
+  if (changePct < -3) {
+    return { label: `Softening prices (${changePct.toFixed(1)}%)`, direction: "down" as const, changePct }
+  }
+  return { label: "Stable pricing", direction: "stable" as const, changePct }
+}
+
+function buildTraits(params: {
+  averagePrice?: number | null
+  avgDaysOnMarket?: number | null
+  avgPricePerSqft?: number | null
+  similarListings?: number | null
+}) {
+  const traits: string[] = []
+  const averagePrice = params.averagePrice ?? 0
+  const avgDaysOnMarket = params.avgDaysOnMarket ?? 0
+  const avgPricePerSqft = params.avgPricePerSqft ?? 0
+  const similarListings = params.similarListings ?? 0
+
+  if (avgDaysOnMarket > 0 && avgDaysOnMarket <= 30) traits.push("Fast-moving inventory")
+  if (avgDaysOnMarket >= 90) traits.push("Longer selling cycles")
+  if (averagePrice >= 5000000) traits.push("Ultra-luxury pricing")
+  if (averagePrice >= 2000000 && averagePrice < 5000000) traits.push("Prime price band")
+  if (avgPricePerSqft >= 1000) traits.push("Premium price per sqft")
+  if (similarListings >= 50) traits.push("Deep comparable inventory")
+  if (similarListings > 0 && similarListings < 15) traits.push("Limited comparable stock")
+
+  if (traits.length === 0) {
+    traits.push("Active inventory", "Market-ready listings", "Neighborhood demand")
+  }
+  return traits.slice(0, 4)
+}
+
+type MarketAggregate = {
+  avgPrice: number | null
+  minPrice: number | null
+  maxPrice: number | null
+  avgDaysOnMarket: number | null
+  avgRecentPrice: number | null
+  avgPrevPrice: number | null
+  avgPricePerSqft: number | null
+  avgSqft: number | null
+  recentCount: number | null
+  prevCount: number | null
+  similarCount: number | null
+  priceHistory: Array<{ date: string; price: number }>
+}
+
+async function queryMarketAggregate(address: string, price?: number): Promise<MarketAggregate | null> {
+  if (!DATABASE_URL) {
+    return null
+  }
+
+  const client = await getClient()
+  const searchTerm = normalizeSearchTerm(address)
+  if (!searchTerm) return null
+  const likePattern = `%${searchTerm}%`
+
+  for (const table of MARKET_TABLES) {
+    const columns = await getTableColumns(table)
+    if (columns.size === 0) continue
+
+    const searchExpr = buildTextCoalesceExpr(columns, MARKET_COLUMN_CANDIDATES.address)
+    const priceExpr = buildNumericCoalesceExpr(columns, MARKET_COLUMN_CANDIDATES.price)
+
+    if (!searchExpr || !priceExpr) continue
+
+    const sqftExpr = buildNumericCoalesceExpr(columns, MARKET_COLUMN_CANDIDATES.sqft)
+    const dateExpr = buildDateCoalesceExpr(columns, MARKET_COLUMN_CANDIDATES.date)
+    const domExpr = buildNumericCoalesceExpr(columns, MARKET_COLUMN_CANDIDATES.daysOnMarket)
+    const daysExpr = domExpr ?? (dateExpr ? `EXTRACT(DAY FROM (NOW() - ${dateExpr}))` : null)
+
+    const avgRecentExpr = dateExpr
+      ? `AVG(${priceExpr}) FILTER (WHERE ${dateExpr} >= NOW() - INTERVAL '90 days')`
+      : "NULL"
+    const avgPrevExpr = dateExpr
+      ? `AVG(${priceExpr}) FILTER (WHERE ${dateExpr} >= NOW() - INTERVAL '180 days' AND ${dateExpr} < NOW() - INTERVAL '90 days')`
+      : "NULL"
+    const recentCountExpr = dateExpr
+      ? `COUNT(*) FILTER (WHERE ${dateExpr} >= NOW() - INTERVAL '90 days')`
+      : "NULL"
+    const prevCountExpr = dateExpr
+      ? `COUNT(*) FILTER (WHERE ${dateExpr} >= NOW() - INTERVAL '180 days' AND ${dateExpr} < NOW() - INTERVAL '90 days')`
+      : "NULL"
+    const avgPricePerSqftExpr = sqftExpr ? `AVG(${priceExpr} / NULLIF(${sqftExpr}, 0))` : "NULL"
+    const avgSqftExpr = sqftExpr ? `AVG(${sqftExpr})` : "NULL"
+
+    const values: unknown[] = [likePattern]
+    let similarCountExpr = "NULL"
+    if (typeof price === "number" && Number.isFinite(price)) {
+      values.push(price * 0.9, price * 1.1)
+      similarCountExpr = `COUNT(*) FILTER (WHERE ${priceExpr} BETWEEN $2 AND $3)`
+    }
+
+    const aggregateQuery = `
+      SELECT
+        AVG(${priceExpr})::numeric AS avg_price,
+        MIN(${priceExpr})::numeric AS min_price,
+        MAX(${priceExpr})::numeric AS max_price,
+        ${daysExpr ? `AVG(${daysExpr})::numeric` : "NULL"} AS avg_days,
+        ${avgRecentExpr}::numeric AS avg_recent,
+        ${avgPrevExpr}::numeric AS avg_prev,
+        ${avgPricePerSqftExpr}::numeric AS avg_price_per_sqft,
+        ${avgSqftExpr}::numeric AS avg_sqft,
+        ${recentCountExpr}::int AS recent_count,
+        ${prevCountExpr}::int AS prev_count,
+        ${similarCountExpr}::int AS similar_count,
+        COUNT(*)::int AS total_count
+      FROM ${table}
+      WHERE ${priceExpr} IS NOT NULL
+        AND ${searchExpr} ILIKE $1
+    `
+
+    try {
+      const aggregateResult = await client.query(aggregateQuery, values)
+      const row = aggregateResult.rows[0]
+      if (!row || Number(row.total_count ?? 0) === 0) continue
+
+      let priceHistory: Array<{ date: string; price: number }> = []
+      if (dateExpr) {
+        const historyQuery = `
+          SELECT date_trunc('month', ${dateExpr}) AS month, AVG(${priceExpr})::numeric AS avg_price
+          FROM ${table}
+          WHERE ${priceExpr} IS NOT NULL
+            AND ${dateExpr} IS NOT NULL
+            AND ${searchExpr} ILIKE $1
+          GROUP BY 1
+          ORDER BY 1 DESC
+          LIMIT 3
+        `
+        const historyResult = await client.query(historyQuery, [likePattern])
+        priceHistory = historyResult.rows
+          .filter((entry) => entry.month && entry.avg_price)
+          .map((entry) => ({
+            date: new Date(entry.month as string).toISOString(),
+            price: Number(entry.avg_price),
+          }))
+          .reverse()
+      }
+
+      return {
+        avgPrice: row.avg_price ? Number(row.avg_price) : null,
+        minPrice: row.min_price ? Number(row.min_price) : null,
+        maxPrice: row.max_price ? Number(row.max_price) : null,
+        avgDaysOnMarket: row.avg_days ? Number(row.avg_days) : null,
+        avgRecentPrice: row.avg_recent ? Number(row.avg_recent) : null,
+        avgPrevPrice: row.avg_prev ? Number(row.avg_prev) : null,
+        avgPricePerSqft: row.avg_price_per_sqft ? Number(row.avg_price_per_sqft) : null,
+        avgSqft: row.avg_sqft ? Number(row.avg_sqft) : null,
+        recentCount: row.recent_count ? Number(row.recent_count) : null,
+        prevCount: row.prev_count ? Number(row.prev_count) : null,
+        similarCount: row.similar_count ? Number(row.similar_count) : null,
+        priceHistory,
+      }
+    } catch (error) {
+      console.error(`Neon market query error (${table}):`, error)
+    }
+  }
+
+  return null
+}
+
+export async function getMarketInsights(address: string): Promise<MarketInsights> {
+  const aggregate = await queryMarketAggregate(address)
+  const avgPrice = aggregate?.avgPrice ?? 0
+  const minPrice = aggregate?.minPrice ?? 0
+  const maxPrice = aggregate?.maxPrice ?? 0
+  const avgDaysOnMarket = aggregate?.avgDaysOnMarket ?? 0
+  const trend = computeTrend(aggregate?.avgRecentPrice, aggregate?.avgPrevPrice)
+  const populationGrowth = aggregate?.recentCount && aggregate?.prevCount && aggregate.prevCount > 0
+    ? Number((((aggregate.recentCount - aggregate.prevCount) / aggregate.prevCount) * 100).toFixed(1))
+    : 0
+  const traits = buildTraits({
+    averagePrice: avgPrice,
+    avgDaysOnMarket,
+    avgPricePerSqft: aggregate?.avgPricePerSqft ?? null,
+    similarListings: aggregate?.similarCount ?? null,
+  })
+
+  return {
+    marketTrend: trend.label,
+    averagePrice: avgPrice,
+    priceRange: { min: minPrice, max: maxPrice },
+    populationGrowth,
+    averageDaysOnMarket: Math.round(avgDaysOnMarket),
+    walkscore: undefined,
+    topNeighborhoodTraits: traits,
+  }
+}
+
+export async function getMarketListingAnalysis(address: string, price: number): Promise<ListingAnalysis> {
+  const aggregate = await queryMarketAggregate(address, price)
+  const avgDaysOnMarket = aggregate?.avgDaysOnMarket ?? 0
+  const avgPricePerSqft = aggregate?.avgPricePerSqft ?? null
+  const avgSqft = aggregate?.avgSqft ?? null
+  const derivedPricePerSqft = avgSqft && avgSqft > 0 ? price / avgSqft : avgPricePerSqft ?? 0
+  const similarListings = aggregate?.similarCount ?? 0
+  const trend = computeTrend(aggregate?.avgRecentPrice, aggregate?.avgPrevPrice)
+
+  let investmentScore = 5
+  if (trend.direction === "up") investmentScore += 2
+  if (trend.direction === "down") investmentScore -= 1
+  if (avgDaysOnMarket > 0 && avgDaysOnMarket <= 30) investmentScore += 1
+  if (avgDaysOnMarket >= 90) investmentScore -= 1
+  if (similarListings >= 25) investmentScore += 1
+  investmentScore = Math.min(10, Math.max(1, investmentScore))
+
+  const insights = [
+    `Comparable inventory shows ${similarListings} active listings near this pricing band.`,
+    avgDaysOnMarket
+      ? `Average days on market is ${Math.round(avgDaysOnMarket)} days in this area.`
+      : "Days-on-market data is limited for this neighborhood.",
+    trend.direction === "up"
+      ? "Recent pricing momentum indicates rising demand."
+      : trend.direction === "down"
+        ? "Pricing suggests a cooling market—negotiate accordingly."
+        : "Pricing has remained stable across the past two quarters.",
+  ]
+
+  return {
+    pricePerSqft: Math.round(derivedPricePerSqft),
+    priceHistory: aggregate?.priceHistory?.length ? aggregate.priceHistory : [
+      { date: new Date().toISOString(), price },
+    ],
+    marketTrend: trend.direction,
+    daysOnMarket: Math.round(avgDaysOnMarket),
+    similarListings,
+    investmentScore,
+    insights,
+  }
 }
