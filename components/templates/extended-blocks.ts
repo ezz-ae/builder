@@ -92,7 +92,7 @@ export const LISTING_FEATURE_BLOCKS: BlockTemplate[] = [
     name: "Property Features List",
     description: "Highlighted features with icons",
     category: "info",
-    component: "FeaturesListBlock",
+    component: "PropertyFeaturesBlock",
     requires: ["listing"],
     customizable: { text: ["title"] },
     defaultProps: {
@@ -114,7 +114,7 @@ export const LISTING_FEATURE_BLOCKS: BlockTemplate[] = [
     name: "Property Specifications",
     description: "Detailed specs in table format",
     category: "info",
-    component: "SpecsTableBlock",
+    component: "PropertySpecsBlock",
     requires: ["listing"],
     customizable: {},
     defaultProps: {
@@ -311,7 +311,7 @@ export const INFO_MARKETING_BLOCKS: BlockTemplate[] = [
     name: "Neighborhood Information",
     description: "Local schools, amenities, walkability",
     category: "info",
-    component: "NeighborhoodBlock",
+    component: "NeighborhoodInfoBlock",
     requires: [],
     customizable: {},
     defaultProps: {

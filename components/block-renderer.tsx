@@ -121,6 +121,23 @@ const InvestmentMetricsBlock = lazy(() =>
   import("./blocks/specialized-template-blocks").then((m) => ({ default: m.InvestmentMetricsBlock })),
 )
 
+// Extra blocks (timeline, benefits, map, multi-cta, new construction)
+const TimelineBlock = lazy(() =>
+  import("./blocks/extra-blocks").then((m) => ({ default: m.TimelineBlock })),
+)
+const BenefitsBlock = lazy(() =>
+  import("./blocks/extra-blocks").then((m) => ({ default: m.BenefitsBlock })),
+)
+const MapBlock = lazy(() =>
+  import("./blocks/extra-blocks").then((m) => ({ default: m.MapBlock })),
+)
+const MultiCTABlock = lazy(() =>
+  import("./blocks/extra-blocks").then((m) => ({ default: m.MultiCTABlock })),
+)
+const NewConstructionBlock = lazy(() =>
+  import("./blocks/extra-blocks").then((m) => ({ default: m.NewConstructionBlock })),
+)
+
 // Map component names to actual components
 const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   HeroBlock,
@@ -160,6 +177,11 @@ const BLOCK_COMPONENTS: Record<string, React.ComponentType<any>> = {
   LimitedOfferBlock,
   PropertyReportBlock,
   InvestmentMetricsBlock,
+  TimelineBlock,
+  BenefitsBlock,
+  MapBlock,
+  MultiCTABlock,
+  NewConstructionBlock,
 }
 
 interface BlockRendererProps {
