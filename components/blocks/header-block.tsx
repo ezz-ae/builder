@@ -67,7 +67,7 @@ export function HeaderBlock({
 
         {/* CTA Button */}
         <a
-          href="tel:{settings.branding.phone}"
+          href={`tel:${settings.branding.phone}`}
           className="hidden md:inline-block px-6 py-2 rounded-lg text-white font-semibold"
           style={{ backgroundColor: settings.colors.primary }}
         >

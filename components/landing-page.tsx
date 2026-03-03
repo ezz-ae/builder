@@ -1,153 +1,279 @@
 "use client"
 
-import { ArrowRight, ImageIcon, Type, Download, Layers, Palette, Share2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { ALL_WEBSITE_TEMPLATES } from "./templates/website-templates"
+import { ALL_BLOCK_TEMPLATES } from "./templates/block-registry"
+import {
+  Layers,
+  Paintbrush,
+  Globe,
+  Zap,
+  ArrowRight,
+  Building2,
+  LayoutGrid,
+  Smartphone,
+} from "lucide-react"
 
-interface LandingPageProps {
-  onGetStarted: () => void
-}
+const CATEGORIES = [
+  { key: "luxury", label: "Luxury", color: "#d4af37" },
+  { key: "mainstream", label: "Mainstream", color: "#2563eb" },
+  { key: "specialized", label: "Specialized", color: "#7c3aed" },
+  { key: "industry", label: "Industry", color: "#059669" },
+]
 
-export function LandingPage({ onGetStarted }: LandingPageProps) {
-  const features = [
-    {
-      icon: ImageIcon,
-      title: "Custom Backgrounds",
-      description: "Upload images, choose gradients, or use pattern backgrounds",
-    },
-    {
-      icon: Type,
-      title: "Rich Typography",
-      description: "Multiple fonts, sizes, shadows, and text effects",
-    },
-    {
-      icon: Layers,
-      title: "Drag & Drop",
-      description: "Position elements anywhere with intuitive controls",
-    },
-    {
-      icon: Palette,
-      title: "Shapes & Icons",
-      description: "Add rectangles, circles, dividers, and social icons",
-    },
-    {
-      icon: Download,
-      title: "Export Options",
-      description: "Download as PNG, JPEG, or WebP in multiple resolutions",
-    },
-    {
-      icon: Share2,
-      title: "Share & Save",
-      description: "Generate shareable links or save projects locally",
-    },
-  ]
+const PUBLIC_EXPERIENCES = [
+  {
+    title: "Template Gallery",
+    description: "Browse 29+ curated templates organized by use cases so you can launch faster.",
+    href: "/templates",
+    badge: "New",
+  },
+  {
+    title: "Full Site Showcases",
+    description: "Preview full home, listings, and about pages assembled from builder-ready templates.",
+    href: "/showcase",
+    badge: "Demos",
+  },
+  {
+    title: "AI Chat Builder",
+    description: "Feed any property and Gemini will create ad copy, follow-ups, and SEO-ready descriptions.",
+    href: "/ai-chat",
+    badge: "AI",
+  },
+]
+
+export function LandingPage() {
+  const templateCount = ALL_WEBSITE_TEMPLATES.length
+  const blockCount = ALL_BLOCK_TEMPLATES.length
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="border-b border-border/40">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-gray-100">
+        <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-              <ImageIcon className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-semibold text-lg">OG Image Generator</span>
+            <Building2 className="w-7 h-7 text-blue-600" />
+            <span className="text-xl font-bold text-gray-900">SiteBuilder</span>
           </div>
-          <Button onClick={onGetStarted} size="sm">
-            Open Editor
-            <ArrowRight className="w-4 h-4 ml-1" />
-          </Button>
+          <a
+            href="/builder"
+            className="px-5 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition text-sm"
+          >
+            Start Building
+          </a>
         </div>
       </header>
 
       {/* Hero */}
-      <main className="flex-1 flex flex-col">
-        <section className="container mx-auto px-6 py-20 text-center">
-          <div className="max-w-3xl mx-auto space-y-6">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-balance">
-              Create stunning OG images in seconds
-            </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto text-pretty">
-              Design beautiful social media preview images with custom backgrounds, typography, and shapes. No design
-              skills required.
-            </p>
-            <div className="flex items-center justify-center gap-4 pt-4">
-              <Button onClick={onGetStarted} size="lg" className="gap-2">
-                Start Creating
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
+      <section className="py-24 px-6 bg-gradient-to-br from-blue-50 via-white to-purple-50">
+        <div className="max-w-4xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium mb-8">
+            <Zap className="w-4 h-4" />
+            {templateCount} Templates &middot; {blockCount}+ Blocks
           </div>
-        </section>
+          <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            Build Stunning Real Estate
+            <br />
+            <span className="text-blue-600">Websites in Minutes</span>
+          </h1>
+          <p className="text-xl text-gray-600 mb-10 max-w-2xl mx-auto">
+            Choose from professionally designed templates, customize every block,
+            and publish your real estate website — no coding required.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="/builder"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-blue-600 text-white rounded-xl font-semibold text-lg hover:bg-blue-700 transition shadow-lg shadow-blue-600/25"
+            >
+              Start Building Free
+              <ArrowRight className="w-5 h-5" />
+            </a>
+            <a
+              href="#templates"
+              className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-gray-700 rounded-xl font-semibold text-lg hover:bg-gray-50 transition border border-gray-200"
+            >
+              View Templates
+            </a>
+          </div>
+        </div>
+      </section>
 
-        {/* Preview mockup */}
-        <section className="container mx-auto px-6 pb-16">
-          <div className="max-w-4xl mx-auto">
-            <div className="relative rounded-xl border border-border/60 bg-card shadow-2xl overflow-hidden">
-              <div className="aspect-[1200/630] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 relative flex items-center justify-center">
-                {/* Simulated OG image preview */}
-                <div className="absolute inset-0 opacity-20">
-                  <div
-                    className="absolute inset-0"
-                    style={{
-                      backgroundImage: "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.15) 1px, transparent 0)",
-                      backgroundSize: "24px 24px",
-                    }}
+      {/* Features */}
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+            Everything You Need
+          </h2>
+          <p className="text-center text-gray-500 mb-16 max-w-xl mx-auto">
+            A complete website builder tailored specifically for real estate professionals
+          </p>
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              {
+                icon: LayoutGrid,
+                title: "Drag & Drop Builder",
+                desc: "Add, remove, and reorder blocks to create your perfect layout",
+              },
+              {
+                icon: Paintbrush,
+                title: "Full Customization",
+                desc: "Change colors, fonts, text, and images — make it yours",
+              },
+              {
+                icon: Layers,
+                title: `${blockCount}+ Blocks`,
+                desc: "Listings grids, hero sections, contact forms, testimonials & more",
+              },
+              {
+                icon: Smartphone,
+                title: "Mobile Responsive",
+                desc: "Every template looks great on desktop, tablet, and mobile",
+              },
+            ].map((feature, i) => (
+              <div key={i} className="text-center p-6">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-50 rounded-xl mb-4">
+                  <feature.icon className="w-7 h-7 text-blue-600" />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-sm text-gray-500">{feature.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Templates Preview */}
+      <section id="templates" className="py-20 px-6 bg-gray-50">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-center text-gray-900 mb-4">
+            Professional Templates
+          </h2>
+          <p className="text-center text-gray-500 mb-12 max-w-xl mx-auto">
+            Start with a professionally designed template and customize it to match your brand
+          </p>
+
+          {/* Category pills */}
+          <div className="flex justify-center gap-3 mb-12">
+            {CATEGORIES.map((cat) => {
+              const count = ALL_WEBSITE_TEMPLATES.filter(
+                (t) => (t as Record<string, unknown>).category === cat.key
+              ).length
+              return (
+                <span
+                  key={cat.key}
+                  className="px-4 py-2 rounded-full text-sm font-medium text-white"
+                  style={{ backgroundColor: cat.color }}
+                >
+                  {cat.label} ({count})
+                </span>
+              )
+            })}
+          </div>
+
+          {/* Template grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {ALL_WEBSITE_TEMPLATES.slice(0, 6).map((template) => {
+              const primary = template.defaultSettings?.colors?.primary || "#2563eb"
+              const secondary = template.defaultSettings?.colors?.secondary || primary
+              return (
+              <div
+                key={template.id}
+                className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition group"
+              >
+                <div
+                  className="h-40 flex items-center justify-center"
+                  style={{
+                    background: `linear-gradient(135deg, ${primary}22, ${secondary}33)`,
+                  }}
+                >
+                  <Globe
+                    className="w-12 h-12 opacity-30"
+                    style={{ color: primary }}
                   />
                 </div>
-                <div className="relative z-10 text-center space-y-4 px-8">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-white/80 text-sm">
-                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                    Preview
+                <div className="p-5">
+                  <h3 className="font-bold text-gray-900 mb-1">{template.name}</h3>
+                  <p className="text-sm text-gray-500 mb-4 line-clamp-2">
+                    {template.description}
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {template.tags.slice(0, 3).map((tag: string) => (
+                      <span
+                        key={tag}
+                        className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
-                  <h2 className="text-3xl md:text-4xl font-bold text-white">Your Amazing Title</h2>
-                  <p className="text-white/60 text-lg">yourdomain.com</p>
                 </div>
               </div>
-            </div>
+              )
+            })}
           </div>
-        </section>
 
-        {/* Features */}
-        <section className="border-t border-border/40 bg-muted/20">
-          <div className="container mx-auto px-6 py-16">
-            <h2 className="text-2xl font-semibold text-center mb-12">Everything you need</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {features.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="p-6 rounded-xl border border-border/40 bg-card hover:border-border/80 transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
-                    <feature.icon className="w-5 h-5 text-primary" />
-                  </div>
-                  <h3 className="font-medium mb-2">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* CTA */}
-        <section className="container mx-auto px-6 py-16 text-center">
-          <div className="max-w-xl mx-auto space-y-6">
-            <h2 className="text-2xl md:text-3xl font-semibold">Ready to create?</h2>
-            <p className="text-muted-foreground">
-              Start with a template or build from scratch. Your OG image is just a few clicks away.
-            </p>
-            <Button onClick={onGetStarted} size="lg" className="gap-2">
-              Open Editor
+          <div className="text-center mt-10">
+            <a
+              href="/builder"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition"
+            >
+              Browse All {templateCount} Templates
               <ArrowRight className="w-4 h-4" />
-            </Button>
+            </a>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+
+      <section className="py-20 px-6 bg-white">
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="text-center space-y-2">
+            <p className="text-xs uppercase tracking-[0.45em] text-blue-600 font-semibold">Public experiences</p>
+            <h2 className="text-3xl font-bold text-gray-900">Dive into the full site experience</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto">
+              Explore the same templates, AI chat, and ready-made pages your clients will see once they publish.
+            </p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3">
+            {PUBLIC_EXPERIENCES.map((experience) => (
+              <a
+                key={experience.title}
+                href={experience.href}
+                className="block rounded-2xl border border-gray-100 p-6 bg-gradient-to-br from-blue-50 to-white hover:shadow-xl transition text-left"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-gray-600">{experience.badge}</span>
+                  <ArrowRight className="w-4 h-4 text-blue-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mt-3">{experience.title}</h3>
+                <p className="text-sm text-gray-500 mt-2">{experience.description}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-20 px-6 bg-blue-600">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to Build Your Website?
+          </h2>
+          <p className="text-blue-100 mb-8 text-lg">
+            Join hundreds of real estate professionals who trust SiteBuilder
+            for their online presence.
+          </p>
+          <a
+            href="/builder"
+            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-blue-600 rounded-xl font-semibold text-lg hover:bg-blue-50 transition"
+          >
+            Get Started Now
+            <ArrowRight className="w-5 h-5" />
+          </a>
+        </div>
+      </section>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-6">
-        <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          Built for creating beautiful social media previews
-        </div>
+      <footer className="py-8 px-6 bg-gray-900 text-gray-400 text-sm text-center">
+        <p>&copy; {new Date().getFullYear()} SiteBuilder. Built for real estate professionals.</p>
       </footer>
     </div>
   )

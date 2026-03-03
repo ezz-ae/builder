@@ -1,5 +1,5 @@
-import { TemplateBuilder } from "@/components/template-builder"
+import { LandingPage } from "@/components/landing-page"
 
 export default function Home() {
-  return <TemplateBuilder />
+  return <LandingPage />
 }

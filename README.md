@@ -77,6 +77,20 @@ http://localhost:3002
 
 ---
 
+## 🔌 API & AI Endpoints
+
+- `GET /api/listings` – filter listings by agency, status, price, and keyword to preview live data
+- `GET /api/agents` – pull the roster for any agency to populate agent grids
+- `GET /api/templates` – stream every curated template and the categories they belong to
+- `POST /api/ai/chat` – feed property details to Vertex Gemini and receive marketing campaigns + SEO descriptions
+
+## 🔥 Live Experiences
+
+1. `/templates` – explore the gallery of 29+ templates with thumbnails, tags, and quick links into the builder
+2. `/showcase` – preview full site demos built from page templates (home, listings, about, contact)
+3. `/ai-chat` – launch the AI chat builder and generate copy, keywords, follow-ups, and SEO content with Gemini
+
+
 ## 📋 Available Templates
 
 ### Luxury Category (3)

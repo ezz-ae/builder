@@ -385,7 +385,7 @@ export function OGGenerator() {
   })
 
   if (showLanding) {
-    return <LandingPage onGetStarted={handleGetStarted} />
+    return <LandingPage />
   }
 
   return (

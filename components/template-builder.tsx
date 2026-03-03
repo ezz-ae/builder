@@ -212,11 +212,34 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
       pages = groupBlocksIntoPages(blockIds)
     }
 
+    // Handle templates that use `settings` instead of `defaultSettings`
+    const tAny = template as Record<string, unknown>
+    const altSettings = (tAny.settings || {}) as Record<string, string>
+    const resolvedSettings = template.defaultSettings?.colors
+      ? template.defaultSettings
+      : {
+          colors: {
+            primary: altSettings.primaryColor || "#2563eb",
+            secondary: altSettings.secondaryColor || "#1e40af",
+            accent: altSettings.accentColor || "#10b981",
+            text: "#1a1a1a",
+            background: "#ffffff",
+          },
+          fonts: { heading: "Geist, sans-serif", body: "Geist, sans-serif" },
+          branding: {
+            logoUrl: altSettings.logoUrl || "",
+            companyName: altSettings.logoText || template.name,
+            phone: "",
+            email: "",
+            address: "",
+          },
+        }
+
     const site: Website = {
       id: `website-${Date.now()}`,
       name: template.name,
       pages,
-      settings: template.defaultSettings,
+      settings: resolvedSettings,
       template: templateId,
       category: template.category,
       description: template.description,
@@ -374,13 +397,16 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
     [updatePages],
   )
 
-  // Save
+  // Save & Publish
   const handleSave = useCallback(() => {
-    if (website && onSave) {
-      onSave(website)
-    }
+    if (!website) return
+    // Save to localStorage
+    localStorage.setItem("builder-published-site", JSON.stringify(website))
+    if (onSave) onSave(website)
     setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    // Open preview in new tab
+    window.open("/preview", "_blank")
+    setTimeout(() => setSaved(false), 3000)
   }, [website, onSave])
 
   // ── Template Selector ──
@@ -931,6 +957,13 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
             const catConfig = CATEGORY_CONFIG[template.category ?? "mainstream"] ?? CATEGORY_CONFIG.mainstream
             const pageCount = template.pages.length
             const hasPageObjects = template.pages.some((p: unknown) => typeof p === "object")
+            // Handle both defaultSettings.colors.X and settings.primaryColor shapes
+            const tAny = template as Record<string, unknown>
+            const ds = template.defaultSettings || {}
+            const altSettings = (tAny.settings || {}) as Record<string, unknown>
+            const primaryColor = ds.colors?.primary || (altSettings.primaryColor as string) || catConfig.color
+            const accentColor = ds.colors?.accent || (altSettings.accentColor as string) || primaryColor
+            const bgColor = ds.colors?.background || "#ffffff"
 
             return (
               <div
@@ -938,27 +971,57 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
                 className="group bg-gray-900 rounded-xl overflow-hidden hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-200 cursor-pointer border border-gray-800 hover:border-gray-600"
                 onClick={() => onSelect(template.id)}
               >
-                {/* Preview */}
-                <div className={`h-40 bg-gradient-to-br ${catConfig.gradient} relative overflow-hidden`}>
-                  {/* Layout preview wireframe */}
-                  <div className="absolute inset-4 flex flex-col gap-2 opacity-20 group-hover:opacity-30 transition">
-                    <div className="h-3 bg-white/80 rounded w-3/4" />
-                    <div className="h-2 bg-white/50 rounded w-1/2" />
-                    <div className="flex-1 flex gap-2 mt-1">
-                      <div className="flex-1 bg-white/30 rounded" />
-                      <div className="flex-1 bg-white/30 rounded" />
-                      <div className="flex-1 bg-white/30 rounded" />
+                {/* Preview — uses actual template colors */}
+                <div
+                  className="h-44 relative overflow-hidden"
+                  style={{ backgroundColor: bgColor }}
+                >
+                  {/* Mini header bar */}
+                  <div
+                    className="h-6 flex items-center px-3 gap-2"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <div className="w-12 h-2 rounded bg-white/40" />
+                    <div className="ml-auto flex gap-2">
+                      <div className="w-6 h-1.5 rounded bg-white/30" />
+                      <div className="w-6 h-1.5 rounded bg-white/30" />
+                      <div className="w-6 h-1.5 rounded bg-white/30" />
                     </div>
-                    <div className="h-2 bg-white/20 rounded w-full" />
+                  </div>
+                  {/* Mini hero section */}
+                  <div
+                    className="mx-2 mt-2 rounded h-16 flex flex-col items-center justify-center"
+                    style={{ backgroundColor: `${primaryColor}15` }}
+                  >
+                    <div
+                      className="h-2.5 rounded w-24 mb-1"
+                      style={{ backgroundColor: primaryColor }}
+                    />
+                    <div className="h-1.5 rounded w-16 bg-gray-300" />
+                    <div
+                      className="h-3 rounded w-12 mt-2"
+                      style={{ backgroundColor: accentColor }}
+                    />
+                  </div>
+                  {/* Mini grid */}
+                  <div className="mx-2 mt-2 flex gap-1.5">
+                    {[1, 2, 3].map((n) => (
+                      <div key={n} className="flex-1 rounded overflow-hidden border border-gray-200">
+                        <div className="h-6 bg-gray-200" />
+                        <div className="h-3 px-1 py-0.5">
+                          <div className="h-1 rounded bg-gray-300 w-3/4" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                   {/* Category Badge */}
-                  <div className="absolute top-3 left-3">
+                  <div className="absolute top-8 left-3">
                     <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/30 text-white/80 backdrop-blur-sm">
                       {template.category}
                     </span>
                   </div>
-                  {/* Page count */}
-                  <div className="absolute bottom-3 right-3">
+                  {/* Block/page count */}
+                  <div className="absolute bottom-2 right-2">
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/30 text-white/70 backdrop-blur-sm">
                       {hasPageObjects ? `${pageCount} pages` : `${pageCount} blocks`}
                     </span>
@@ -970,10 +1033,16 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
                   <h3 className="text-sm font-bold mb-1 group-hover:text-blue-400 transition truncate">
                     {template.name}
                   </h3>
-                  <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-gray-500 mb-2 line-clamp-2 leading-relaxed">
                     {template.description}
                   </p>
-
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {template.tags?.slice(0, 3).map((tag: string) => (
+                      <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-gray-800 text-gray-400 rounded">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
                   <button className="w-full bg-gray-800 group-hover:bg-blue-600 text-gray-300 group-hover:text-white px-4 py-2 rounded-lg font-medium transition text-xs">
                     Use Template
                   </button>

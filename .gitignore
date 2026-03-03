@@ -4,8 +4,11 @@ frontend/node_modules/
 backend/venv/
 
 # Build output
+# Next.js artifacts
+.next/
 frontend/.next/
 frontend/tsconfig.tsbuildinfo
+pnpm-lock.yaml
 
 # Environment
 backend/.env
@@ -40,3 +43,4 @@ SHIP_TODAY.md
 INTEGRATION_PLAN_THREE_DASHBOARDS.md
 LINKBIO_INTEGRATION.md
 README_COMPLETE.md
+.env.local

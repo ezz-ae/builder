@@ -3,6 +3,7 @@
 import { Suspense, lazy } from "react"
 import type { BlockInstance, Website, BlockTemplate } from "./types"
 import { ALL_BLOCK_TEMPLATES } from "./templates/block-registry"
+import { getDemoData } from "@/lib/demo-data"
 
 // Dynamic block components (lazy load)
 const HeroBlock = lazy(() => import("./blocks/hero-block").then((m) => ({ default: m.HeroBlock })))
@@ -284,16 +285,19 @@ export function PageRenderer({
     )
   }
 
+  // Inject demo data when no external data is provided
+  const resolvedData = data || getDemoData()
+
   return (
     <div className={`w-full ${editMode ? "bg-gray-100" : ""}`}>
-      {page.blocks.map((block, index) => (
+      {page.blocks.map((block) => (
         <BlockRenderer
           key={block.id}
           block={block}
           website={website}
           editMode={editMode}
           onSelectBlock={onSelectBlock}
-          data={data}
+          data={resolvedData}
         />
       ))}
     </div>
