@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useCallback, useMemo } from "react"
+import React, { useState, useCallback, useMemo, useEffect } from "react"
 import type { Website, Page, BlockInstance, BlockTemplate, PageTemplate } from "./types"
 import { PageRenderer } from "./block-renderer"
 import { ALL_WEBSITE_TEMPLATES } from "./templates/website-templates"
@@ -140,6 +140,21 @@ function getUniqueBlocks(): BlockTemplate[] {
   })
 }
 
+function applyBlockPropUpdates(
+  block: BlockInstance,
+  updates: Record<string, unknown>,
+): BlockInstance {
+  const nextProps = { ...(block.props ?? {}) }
+  for (const [key, value] of Object.entries(updates)) {
+    if (value === undefined) {
+      delete nextProps[key]
+    } else {
+      nextProps[key] = value
+    }
+  }
+  return { ...block, props: nextProps }
+}
+
 // ============================================
 // MAIN TEMPLATE BUILDER
 // ============================================
@@ -156,6 +171,8 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
   const [renamingPageSlug, setRenamingPageSlug] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState("")
   const [saved, setSaved] = useState(false)
+  const [marketFetchStatus, setMarketFetchStatus] = useState<"idle" | "loading" | "success" | "error">("idle")
+  const [marketFetchMessage, setMarketFetchMessage] = useState<string | null>(null)
 
   const uniqueBlocks = useMemo(() => getUniqueBlocks(), [])
 
@@ -181,6 +198,16 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
   const editingBlockTemplate = editingBlock
     ? ALL_BLOCK_TEMPLATES.find((t) => t.id === editingBlock.blockTemplateId)
     : null
+  const isMarketMetricsBlock = editingBlockTemplate?.id === "market-metrics-block"
+  const marketAddressValue =
+    typeof editingBlock?.props?.address === "string" ? editingBlock.props.address : ""
+  const marketPriceValue =
+    typeof editingBlock?.props?.price === "number" ? editingBlock.props.price : ""
+
+  useEffect(() => {
+    setMarketFetchStatus("idle")
+    setMarketFetchMessage(null)
+  }, [editingBlockId])
 
   // Load template
   const handleSelectTemplate = useCallback((templateId: string) => {
@@ -343,17 +370,15 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
   )
 
   // Update block props
-  const handleUpdateBlockProp = useCallback(
-    (blockId: string, key: string, value: unknown) => {
+  const handleUpdateBlockProps = useCallback(
+    (blockId: string, updates: Record<string, unknown>) => {
       updatePages((pages) =>
         pages.map((p) =>
           p.slug === selectedPageSlug
             ? {
                 ...p,
                 blocks: p.blocks.map((b) =>
-                  b.id === blockId
-                    ? { ...b, props: { ...b.props, [key]: value } }
-                    : b,
+                  b.id === blockId ? applyBlockPropUpdates(b, updates) : b,
                 ),
               }
             : p,
@@ -361,6 +386,13 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
       )
     },
     [selectedPageSlug, updatePages],
+  )
+
+  const handleUpdateBlockProp = useCallback(
+    (blockId: string, key: string, value: unknown) => {
+      handleUpdateBlockProps(blockId, { [key]: value })
+    },
+    [handleUpdateBlockProps],
   )
 
   // Page management
@@ -410,6 +442,47 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
     window.open("/preview", "_blank")
     setTimeout(() => setSaved(false), 3000)
   }, [website, onSave])
+
+  const handleFetchMarketData = useCallback(async () => {
+    if (!editingBlockId) return
+
+    const trimmedAddress = marketAddressValue.trim()
+    if (!trimmedAddress) {
+      setMarketFetchStatus("error")
+      setMarketFetchMessage("Enter an address to fetch market data.")
+      return
+    }
+
+    setMarketFetchStatus("loading")
+    setMarketFetchMessage(null)
+
+    try {
+      const params = new URLSearchParams({ address: trimmedAddress })
+      if (typeof marketPriceValue === "number" && Number.isFinite(marketPriceValue)) {
+        params.set("price", String(marketPriceValue))
+      }
+      const response = await fetch(`/api/market-analysis?${params.toString()}`)
+      const payload = await response.json()
+
+      if (payload?.success && Array.isArray(payload?.data?.marketMetrics)) {
+        handleUpdateBlockProps(editingBlockId, {
+          metrics: payload.data.marketMetrics,
+          address: trimmedAddress,
+          price: typeof marketPriceValue === "number" && Number.isFinite(marketPriceValue)
+            ? marketPriceValue
+            : undefined,
+        })
+        setMarketFetchStatus("success")
+        setMarketFetchMessage("Market data updated.")
+      } else {
+        setMarketFetchStatus("error")
+        setMarketFetchMessage(payload?.error ?? "Market data unavailable.")
+      }
+    } catch (error) {
+      setMarketFetchStatus("error")
+      setMarketFetchMessage("Market analysis request failed.")
+    }
+  }, [editingBlockId, handleUpdateBlockProps, marketAddressValue, marketPriceValue])
 
   // ── Template Selector ──
   if (step === "template-select") {
@@ -721,6 +794,69 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
                 {renderBlockProps(editingBlock, editingBlockTemplate, handleUpdateBlockProp)}
               </div>
             </div>
+
+            {isMarketMetricsBlock && (
+              <div className="border border-gray-800 rounded-lg p-3 bg-gray-900/60 space-y-3">
+                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Market Analysis</h4>
+                <div>
+                  <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    value={marketAddressValue}
+                    onChange={(e) => {
+                      const nextValue = e.target.value
+                      handleUpdateBlockProp(
+                        editingBlockId,
+                        "address",
+                        nextValue.trim().length > 0 ? nextValue : undefined,
+                      )
+                      setMarketFetchStatus("idle")
+                      setMarketFetchMessage(null)
+                    }}
+                    placeholder="Enter address or district"
+                    className="w-full bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">
+                    Price
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={marketPriceValue}
+                    onChange={(e) => {
+                      const nextValue = e.target.value
+                      const parsed = nextValue === "" ? undefined : Number(nextValue)
+                      handleUpdateBlockProp(
+                        editingBlockId,
+                        "price",
+                        Number.isFinite(parsed as number) ? parsed : undefined,
+                      )
+                      setMarketFetchStatus("idle")
+                      setMarketFetchMessage(null)
+                    }}
+                    placeholder="Target price"
+                    className="w-full bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:border-blue-500"
+                  />
+                </div>
+                <button
+                  onClick={handleFetchMarketData}
+                  disabled={marketFetchStatus === "loading"}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition text-xs"
+                >
+                  {marketFetchStatus === "loading" ? "Fetching..." : "Fetch Market Data"}
+                </button>
+                {marketFetchMessage && (
+                  <p className={`text-[10px] ${marketFetchStatus === "error" ? "text-red-400" : "text-emerald-400"}`}>
+                    {marketFetchMessage}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Delete */}
             <div className="pt-4 border-t border-gray-800">

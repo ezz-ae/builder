@@ -468,14 +468,17 @@ export function MarketMetricsBlock({
 
   useEffect(() => {
     const hasInlineData = Boolean(data?.marketMetrics || data?.marketInsights || data?.marketAnalysis)
-    if (hasInlineData || !resolvedAddress) return
+    const hasExplicitInput = typeof address === "string" || typeof price === "number"
+    const safeAddress = typeof resolvedAddress === "string" ? resolvedAddress.trim() : ""
+    if (!safeAddress) return
+    if (hasInlineData && !hasExplicitInput) return
 
     const controller = new AbortController()
 
     async function loadMarketMetrics() {
       setIsLoading(true)
       try {
-        const params = new URLSearchParams({ address: resolvedAddress })
+        const params = new URLSearchParams({ address: safeAddress })
         if (typeof resolvedPrice === "number" && Number.isFinite(resolvedPrice)) {
           params.set("price", String(resolvedPrice))
         }

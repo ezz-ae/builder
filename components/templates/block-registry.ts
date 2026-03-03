@@ -286,8 +286,8 @@ const SPECIALIZED_BLOCKS: BlockTemplate[] = [
     component: "MarketMetricsBlock",
     requires: ["marketMetrics"],
     customizable: {
-      text: ["title"],
-      settings: ["backgroundColor"],
+      text: ["title", "address"],
+      settings: ["backgroundColor", "price"],
     },
     defaultProps: {
       title: "Market Intelligence",
