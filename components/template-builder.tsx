@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useCallback, useMemo, useEffect } from "react"
-import type { Website, Page, BlockInstance, BlockTemplate, PageTemplate } from "./types"
+import type { Website, Page, BlockInstance, BlockTemplate, PageTemplate, WebsiteTemplate } from "./types"
 import { PageRenderer } from "./block-renderer"
 import { ALL_WEBSITE_TEMPLATES } from "./templates/website-templates"
 import { ALL_BLOCK_TEMPLATES } from "./templates/block-registry"
@@ -113,6 +113,73 @@ function groupBlocksIntoPages(blockIds: string[]): Page[] {
   return pages
 }
 
+function resolveTemplateSettings(template: WebsiteTemplate) {
+  const tAny = template as Record<string, unknown>
+  const altSettings = (tAny.settings || {}) as Record<string, string>
+  return template.defaultSettings?.colors
+    ? template.defaultSettings
+    : {
+        colors: {
+          primary: altSettings.primaryColor || "#2563eb",
+          secondary: altSettings.secondaryColor || "#1e40af",
+          accent: altSettings.accentColor || "#10b981",
+          text: "#1a1a1a",
+          background: "#ffffff",
+        },
+        fonts: { heading: "Geist, sans-serif", body: "Geist, sans-serif" },
+        branding: {
+          logoUrl: altSettings.logoUrl || "",
+          companyName: altSettings.logoText || template.name,
+          phone: "",
+          email: "",
+          address: "",
+        },
+      }
+}
+
+function buildPagesFromTemplate(template: WebsiteTemplate): Page[] {
+  const templatePages = template.pages as (PageTemplate | string)[]
+  const pageObjects = templatePages.filter(
+    (p: PageTemplate | string): p is PageTemplate => typeof p === "object",
+  )
+  const blockIds = templatePages.filter(
+    (p: PageTemplate | string): p is string => typeof p === "string",
+  )
+
+  if (pageObjects.length > 0) {
+    return pageObjects.map((pt: PageTemplate, i: number) => ({
+      id: `page-${template.id}-${i}`,
+      title: pt.name,
+      slug: pt.slug ?? pt.category,
+      blocks: pt.blocks.map(
+        (bt: import("./types").BlockTemplate, j: number) => ({
+          id: `block-${template.id}-${i}-${j}`,
+          blockTemplateId: bt.id,
+          props: { ...(bt.defaultProps ?? {}) },
+        }),
+      ),
+    }))
+  }
+
+  return groupBlocksIntoPages(blockIds)
+}
+
+function buildWebsiteFromTemplate(template: WebsiteTemplate, options?: { preview?: boolean }): Website {
+  const pages = buildPagesFromTemplate(template)
+  const settings = resolveTemplateSettings(template)
+  const idPrefix = options?.preview ? "preview" : "website"
+
+  return {
+    id: `${idPrefix}-${template.id}`,
+    name: template.name,
+    pages,
+    settings,
+    template: template.id,
+    category: template.category,
+    description: template.description,
+  }
+}
+
 // ============================================
 // BLOCK CATEGORIES for library
 // ============================================
@@ -214,69 +281,10 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
     const template = ALL_WEBSITE_TEMPLATES.find((t) => t.id === templateId)
     if (!template) return
 
-    const templatePages = template.pages as (PageTemplate | string)[]
-    const pageObjects = templatePages.filter(
-      (p: PageTemplate | string): p is PageTemplate => typeof p === "object",
-    )
-    const blockIds = templatePages.filter(
-      (p: PageTemplate | string): p is string => typeof p === "string",
-    )
-
-    let pages: Page[]
-
-    if (pageObjects.length > 0) {
-      pages = pageObjects.map((pt: PageTemplate, i: number) => ({
-        id: `page-${i}`,
-        title: pt.name,
-        slug: pt.slug ?? pt.category,
-        blocks: pt.blocks.map(
-          (bt: import("./types").BlockTemplate, j: number) => ({
-            id: `block-${i}-${j}`,
-            blockTemplateId: bt.id,
-            props: { ...(bt.defaultProps ?? {}) },
-          }),
-        ),
-      }))
-    } else {
-      pages = groupBlocksIntoPages(blockIds)
-    }
-
-    // Handle templates that use `settings` instead of `defaultSettings`
-    const tAny = template as Record<string, unknown>
-    const altSettings = (tAny.settings || {}) as Record<string, string>
-    const resolvedSettings = template.defaultSettings?.colors
-      ? template.defaultSettings
-      : {
-          colors: {
-            primary: altSettings.primaryColor || "#2563eb",
-            secondary: altSettings.secondaryColor || "#1e40af",
-            accent: altSettings.accentColor || "#10b981",
-            text: "#1a1a1a",
-            background: "#ffffff",
-          },
-          fonts: { heading: "Geist, sans-serif", body: "Geist, sans-serif" },
-          branding: {
-            logoUrl: altSettings.logoUrl || "",
-            companyName: altSettings.logoText || template.name,
-            phone: "",
-            email: "",
-            address: "",
-          },
-        }
-
-    const site: Website = {
-      id: `website-${Date.now()}`,
-      name: template.name,
-      pages,
-      settings: resolvedSettings,
-      template: templateId,
-      category: template.category,
-      description: template.description,
-    }
-
-    setWebsite(site)
+    const site = buildWebsiteFromTemplate(template)
+    setWebsite({ ...site, id: `website-${Date.now()}` })
     setStep("editor")
-    setSelectedPageSlug(pages[0]?.slug ?? "home")
+    setSelectedPageSlug(site.pages[0]?.slug ?? "home")
     setEditingBlockId(null)
     setSaved(false)
   }, [])
@@ -1014,6 +1022,12 @@ const CATEGORY_CONFIG: Record<string, { color: string; gradient: string; icon: s
 function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [previewTemplate, setPreviewTemplate] = useState<WebsiteTemplate | null>(null)
+
+  const previewWebsite = useMemo(
+    () => (previewTemplate ? buildWebsiteFromTemplate(previewTemplate, { preview: true }) : null),
+    [previewTemplate],
+  )
 
   const categories = ["luxury", "mainstream", "specialized", "industry"]
 
@@ -1111,50 +1125,72 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
               <div
                 key={template.id}
                 className="group bg-gray-900 rounded-xl overflow-hidden hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-200 cursor-pointer border border-gray-800 hover:border-gray-600"
-                onClick={() => onSelect(template.id)}
+                onClick={() => setPreviewTemplate(template)}
               >
                 {/* Preview — uses actual template colors */}
                 <div
                   className="h-44 relative overflow-hidden"
                   style={{ backgroundColor: bgColor }}
                 >
-                  {/* Mini header bar */}
-                  <div
-                    className="h-6 flex items-center px-3 gap-2"
-                    style={{ backgroundColor: primaryColor }}
-                  >
-                    <div className="w-12 h-2 rounded bg-white/40" />
-                    <div className="ml-auto flex gap-2">
-                      <div className="w-6 h-1.5 rounded bg-white/30" />
-                      <div className="w-6 h-1.5 rounded bg-white/30" />
-                      <div className="w-6 h-1.5 rounded bg-white/30" />
+                  <div className="absolute inset-0 transition-transform duration-700 ease-out group-hover:-translate-y-10">
+                    {/* Mini header bar */}
+                    <div
+                      className="h-6 flex items-center px-3 gap-2"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      <div className="w-12 h-2 rounded bg-white/40" />
+                      <div className="ml-auto flex gap-2">
+                        <div className="w-6 h-1.5 rounded bg-white/30" />
+                        <div className="w-6 h-1.5 rounded bg-white/30" />
+                        <div className="w-6 h-1.5 rounded bg-white/30" />
+                      </div>
+                    </div>
+                    {/* Mini hero section */}
+                    <div
+                      className="mx-2 mt-2 rounded h-16 flex flex-col items-center justify-center"
+                      style={{ backgroundColor: `${primaryColor}15` }}
+                    >
+                      <div
+                        className="h-2.5 rounded w-24 mb-1"
+                        style={{ backgroundColor: primaryColor }}
+                      />
+                      <div className="h-1.5 rounded w-16 bg-gray-300" />
+                      <div
+                        className="h-3 rounded w-12 mt-2"
+                        style={{ backgroundColor: accentColor }}
+                      />
+                    </div>
+                    {/* Mini grid */}
+                    <div className="mx-2 mt-2 flex gap-1.5">
+                      {[1, 2, 3].map((n) => (
+                        <div key={n} className="flex-1 rounded overflow-hidden border border-gray-200">
+                          <div className="h-6 bg-gray-200" />
+                          <div className="h-3 px-1 py-0.5">
+                            <div className="h-1 rounded bg-gray-300 w-3/4" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {/* Extra fold for hover scroll */}
+                    <div className="mx-2 mt-2 grid grid-cols-2 gap-1.5">
+                      {[1, 2, 3, 4].map((n) => (
+                        <div key={`extra-${n}`} className="rounded border border-gray-200">
+                          <div className="h-3 bg-gray-200" />
+                          <div className="h-2 px-1 py-0.5">
+                            <div className="h-1 rounded bg-gray-300 w-2/3" />
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  {/* Mini hero section */}
-                  <div
-                    className="mx-2 mt-2 rounded h-16 flex flex-col items-center justify-center"
-                    style={{ backgroundColor: `${primaryColor}15` }}
-                  >
-                    <div
-                      className="h-2.5 rounded w-24 mb-1"
-                      style={{ backgroundColor: primaryColor }}
-                    />
-                    <div className="h-1.5 rounded w-16 bg-gray-300" />
-                    <div
-                      className="h-3 rounded w-12 mt-2"
-                      style={{ backgroundColor: accentColor }}
-                    />
-                  </div>
-                  {/* Mini grid */}
-                  <div className="mx-2 mt-2 flex gap-1.5">
-                    {[1, 2, 3].map((n) => (
-                      <div key={n} className="flex-1 rounded overflow-hidden border border-gray-200">
-                        <div className="h-6 bg-gray-200" />
-                        <div className="h-3 px-1 py-0.5">
-                          <div className="h-1 rounded bg-gray-300 w-3/4" />
-                        </div>
-                      </div>
-                    ))}
+                  <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/30 pointer-events-none" />
+                  <div className="absolute inset-0 bg-slate-950/70 opacity-0 group-hover:opacity-100 transition">
+                    <div className="absolute inset-x-3 bottom-3">
+                      <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-300">Overview</p>
+                      <p className="text-xs text-slate-100 leading-snug line-clamp-3">
+                        {template.description}
+                      </p>
+                    </div>
                   </div>
                   {/* Category Badge */}
                   <div className="absolute top-8 left-3">
@@ -1186,7 +1222,7 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
                     ))}
                   </div>
                   <button className="w-full bg-gray-800 group-hover:bg-blue-600 text-gray-300 group-hover:text-white px-4 py-2 rounded-lg font-medium transition text-xs">
-                    Use Template
+                    Preview Template
                   </button>
                 </div>
               </div>
@@ -1200,6 +1236,70 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
           </div>
         )}
       </div>
+
+      {previewTemplate && previewWebsite && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-6 py-8">
+          <button
+            onClick={() => setPreviewTemplate(null)}
+            className="absolute inset-0 bg-black/70"
+            aria-label="Close preview"
+          />
+          <div className="relative w-full max-w-6xl bg-gray-950 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800">
+              <div>
+                <p className="text-xs uppercase tracking-[0.4em] text-cyan-300">Template preview</p>
+                <h3 className="text-xl font-bold text-white">{previewTemplate.name}</h3>
+              </div>
+              <button
+                onClick={() => setPreviewTemplate(null)}
+                className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid lg:grid-cols-[1.5fr_0.7fr] gap-0">
+              <div className="bg-gray-900 border-r border-gray-800">
+                <div className="h-[70vh] overflow-y-auto">
+                  <PageRenderer website={previewWebsite} pageSlug="home" />
+                </div>
+              </div>
+              <div className="p-6 space-y-5">
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">About this template</h4>
+                  <p className="text-sm text-gray-200 mt-2 leading-relaxed">
+                    {previewTemplate.description}
+                  </p>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Action list</h4>
+                  <div className="mt-3 space-y-2">
+                    <button
+                      onClick={() => {
+                        onSelect(previewTemplate.id)
+                        setPreviewTemplate(null)
+                      }}
+                      className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg font-semibold text-sm transition"
+                    >
+                      Use this template
+                    </button>
+                    <button
+                      onClick={() => setPreviewTemplate(null)}
+                      className="w-full flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-gray-200 px-4 py-2.5 rounded-lg font-semibold text-sm transition"
+                    >
+                      Keep browsing
+                    </button>
+                  </div>
+                </div>
+                <div className="border-t border-gray-800 pt-4">
+                  <p className="text-xs text-gray-500">
+                    Tip: the preview shows the home page HTML. Use the builder to customize other pages.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
