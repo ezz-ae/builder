@@ -1,69 +1,218 @@
 "use client"
 
-import React, { useState } from "react"
-import type { Website, Page, BlockInstance, PageTemplate } from "./types"
+import React, { useState, useCallback, useMemo } from "react"
+import type { Website, Page, BlockInstance, BlockTemplate, PageTemplate } from "./types"
 import { PageRenderer } from "./block-renderer"
 import { ALL_WEBSITE_TEMPLATES } from "./templates/website-templates"
 import { ALL_BLOCK_TEMPLATES } from "./templates/block-registry"
+import {
+  Plus, Trash2, ChevronUp, ChevronDown, GripVertical,
+  FileText, Pencil, Monitor, Smartphone, X, Search,
+  ArrowLeft, LayoutGrid, Zap, Check, Copy
+} from "lucide-react"
 
 interface TemplateBuilderProps {
   onSave?: (website: Website) => void
 }
 
-/**
- * Main Template Builder Component
- * Allows users to select templates, customize pages, add/edit blocks
- */
+// ============================================
+// PAGE GROUPING — Split flat block lists into logical pages
+// ============================================
+
+const BLOCK_PAGE_MAP: Record<string, { page: string; title: string }> = {
+  "header-sticky": { page: "home", title: "Home" },
+  "hero-default": { page: "home", title: "Home" },
+  "video-hero": { page: "home", title: "Home" },
+  "listings-grid-3col": { page: "listings", title: "Listings" },
+  "listings-grid-4col": { page: "listings", title: "Listings" },
+  "listing-detail": { page: "listing-detail", title: "Property Detail" },
+  "agent-grid": { page: "about", title: "About Us" },
+  "agent-credentials": { page: "about", title: "About Us" },
+  "testimonials": { page: "about", title: "About Us" },
+  "contact-form": { page: "contact", title: "Contact" },
+  "footer-default": { page: "home", title: "Home" },
+  "gallery-grid-6": { page: "gallery", title: "Gallery" },
+  "carousel-property": { page: "gallery", title: "Gallery" },
+  "before-after": { page: "gallery", title: "Gallery" },
+  "virtual-tour": { page: "gallery", title: "Gallery" },
+  "property-features": { page: "listing-detail", title: "Property Detail" },
+  "property-specs": { page: "listing-detail", title: "Property Detail" },
+  "mortgage-calculator": { page: "tools", title: "Tools" },
+  "price-breakdown": { page: "listing-detail", title: "Property Detail" },
+  "similar-properties": { page: "listings", title: "Listings" },
+  "investment-analysis": { page: "tools", title: "Tools" },
+  "open-house": { page: "events", title: "Events" },
+  "luxury-amenities": { page: "listing-detail", title: "Property Detail" },
+  "neighborhood-info": { page: "listing-detail", title: "Property Detail" },
+  "faq-accordion": { page: "about", title: "About Us" },
+  "process-steps": { page: "about", title: "About Us" },
+  "benefits-3col": { page: "about", title: "About Us" },
+  "new-construction": { page: "listings", title: "Listings" },
+  "services-grid": { page: "about", title: "About Us" },
+  "map-section": { page: "contact", title: "Contact" },
+  "cta-multi-button": { page: "home", title: "Home" },
+}
+
+function groupBlocksIntoPages(blockIds: string[]): Page[] {
+  // Header and footer go on every page
+  const headerBlock = blockIds.find((id) => id.includes("header"))
+  const footerBlock = blockIds.find((id) => id.includes("footer"))
+  const contentBlocks = blockIds.filter(
+    (id) => !id.includes("header") && !id.includes("footer"),
+  )
+
+  const pageMap = new Map<string, { title: string; blockIds: string[] }>()
+
+  for (const blockId of contentBlocks) {
+    const mapping = BLOCK_PAGE_MAP[blockId] ?? { page: "home", title: "Home" }
+    const existing = pageMap.get(mapping.page)
+    if (existing) {
+      existing.blockIds.push(blockId)
+    } else {
+      pageMap.set(mapping.page, { title: mapping.title, blockIds: [blockId] })
+    }
+  }
+
+  // Ensure Home page exists and is first
+  if (!pageMap.has("home")) {
+    pageMap.set("home", { title: "Home", blockIds: [] })
+  }
+
+  // Build pages with header/footer on each
+  const pages: Page[] = []
+  const pageOrder = ["home", "listings", "listing-detail", "gallery", "about", "tools", "events", "contact"]
+
+  for (const slug of pageOrder) {
+    const entry = pageMap.get(slug)
+    if (!entry) continue
+
+    const allBlockIds: string[] = []
+    if (headerBlock) allBlockIds.push(headerBlock)
+    allBlockIds.push(...entry.blockIds)
+    if (footerBlock) allBlockIds.push(footerBlock)
+
+    const blocks: BlockInstance[] = allBlockIds
+      .map((blockId, j) => {
+        const bt = ALL_BLOCK_TEMPLATES.find((b) => b.id === blockId)
+        if (!bt) return null
+        return {
+          id: `block-${slug}-${j}`,
+          blockTemplateId: bt.id,
+          props: { ...(bt.defaultProps ?? {}) },
+        } as BlockInstance
+      })
+      .filter((b): b is BlockInstance => b !== null)
+
+    if (blocks.length > 0) {
+      pages.push({ id: `page-${slug}`, title: entry.title, slug, blocks })
+    }
+  }
+
+  return pages
+}
+
+// ============================================
+// BLOCK CATEGORIES for library
+// ============================================
+
+const BLOCK_CATEGORIES = [
+  { id: "all", label: "All" },
+  { id: "hero", label: "Hero" },
+  { id: "listings-grid", label: "Listings" },
+  { id: "info", label: "Info" },
+  { id: "gallery", label: "Gallery" },
+  { id: "contact-form", label: "Forms" },
+  { id: "cta", label: "CTA" },
+  { id: "agent", label: "Agents" },
+  { id: "header", label: "Header" },
+  { id: "footer", label: "Footer" },
+]
+
+// Deduplicate blocks — only show primary IDs, not aliases
+function getUniqueBlocks(): BlockTemplate[] {
+  const seen = new Set<string>()
+  return ALL_BLOCK_TEMPLATES.filter((b) => {
+    if (seen.has(b.component ?? "")) return false
+    seen.add(b.component ?? "")
+    return true
+  })
+}
+
+// ============================================
+// MAIN TEMPLATE BUILDER
+// ============================================
+
 export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
   const [step, setStep] = useState<"template-select" | "editor">("template-select")
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [website, setWebsite] = useState<Website | null>(null)
   const [selectedPageSlug, setSelectedPageSlug] = useState<string>("home")
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [showBlockLibrary, setShowBlockLibrary] = useState(false)
+  const [blockCategoryFilter, setBlockCategoryFilter] = useState("all")
+  const [blockSearch, setBlockSearch] = useState("")
+  const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop")
+  const [renamingPageSlug, setRenamingPageSlug] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState("")
+  const [saved, setSaved] = useState(false)
 
-  // Load template — convert WebsiteTemplate (string block IDs) → proper Website with Page objects
-  const handleSelectTemplate = (templateId: string) => {
+  const uniqueBlocks = useMemo(() => getUniqueBlocks(), [])
+
+  const filteredBlocks = useMemo(() => {
+    let blocks = uniqueBlocks
+    if (blockCategoryFilter !== "all") {
+      blocks = blocks.filter((b) => b.category === blockCategoryFilter)
+    }
+    if (blockSearch) {
+      const q = blockSearch.toLowerCase()
+      blocks = blocks.filter(
+        (b) =>
+          b.name.toLowerCase().includes(q) ||
+          b.description.toLowerCase().includes(q) ||
+          b.tags.some((t) => t.includes(q)),
+      )
+    }
+    return blocks
+  }, [uniqueBlocks, blockCategoryFilter, blockSearch])
+
+  const currentPage = website?.pages.find((p) => p.slug === selectedPageSlug)
+  const editingBlock = currentPage?.blocks.find((b) => b.id === editingBlockId)
+  const editingBlockTemplate = editingBlock
+    ? ALL_BLOCK_TEMPLATES.find((t) => t.id === editingBlock.blockTemplateId)
+    : null
+
+  // Load template
+  const handleSelectTemplate = useCallback((templateId: string) => {
     const template = ALL_WEBSITE_TEMPLATES.find((t) => t.id === templateId)
     if (!template) return
 
-    // Separate actual PageTemplate objects from raw string block IDs
     const templatePages = template.pages as (PageTemplate | string)[]
-    const pageObjects = templatePages.filter((p: PageTemplate | string): p is PageTemplate => typeof p === "object")
-    const blockIds = templatePages.filter((p: PageTemplate | string): p is string => typeof p === "string")
+    const pageObjects = templatePages.filter(
+      (p: PageTemplate | string): p is PageTemplate => typeof p === "object",
+    )
+    const blockIds = templatePages.filter(
+      (p: PageTemplate | string): p is string => typeof p === "string",
+    )
 
     let pages: Page[]
 
     if (pageObjects.length > 0) {
-      // Templates that use real PageTemplate objects
       pages = pageObjects.map((pt: PageTemplate, i: number) => ({
         id: `page-${i}`,
         title: pt.name,
         slug: pt.slug ?? pt.category,
-        blocks: pt.blocks.map((bt: import("./types").BlockTemplate, j: number) => ({
-          id: `block-${i}-${j}`,
-          blockTemplateId: bt.id,
-          props: { ...(bt.defaultProps ?? {}) },
-        })),
-      }))
-    } else {
-      // Templates that store a flat list of block IDs → single "Home" page
-      const blocks: BlockInstance[] = blockIds
-        .map((blockId: string, j: number) => {
-          const bt = ALL_BLOCK_TEMPLATES.find((b) => b.id === blockId)
-          if (!bt) return null
-          return {
-            id: `block-0-${j}`,
+        blocks: pt.blocks.map(
+          (bt: import("./types").BlockTemplate, j: number) => ({
+            id: `block-${i}-${j}`,
             blockTemplateId: bt.id,
             props: { ...(bt.defaultProps ?? {}) },
-          } as BlockInstance
-        })
-        .filter((b): b is BlockInstance => b !== null)
-
-      pages = [{ id: "page-home", title: "Home", slug: "home", blocks }]
+          }),
+        ),
+      }))
+    } else {
+      pages = groupBlocksIntoPages(blockIds)
     }
 
-    const website: Website = {
+    const site: Website = {
       id: `website-${Date.now()}`,
       name: template.name,
       pages,
@@ -73,228 +222,490 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
       description: template.description,
     }
 
-    setSelectedTemplate(templateId)
-    setWebsite(website)
+    setWebsite(site)
     setStep("editor")
-    setSelectedPageSlug(pages[0].slug)
-  }
+    setSelectedPageSlug(pages[0]?.slug ?? "home")
+    setEditingBlockId(null)
+    setSaved(false)
+  }, [])
 
-  // Add block to page
-  const handleAddBlock = (blockTemplateId: string) => {
-    if (!website) return
+  // Update website helper
+  const updatePages = useCallback(
+    (updater: (pages: Page[]) => Page[]) => {
+      if (!website) return
+      setWebsite({ ...website, pages: updater(website.pages) })
+      setSaved(false)
+    },
+    [website],
+  )
 
-    const page = website.pages.find((p) => p.slug === selectedPageSlug)
-    if (!page) return
+  // Add block to current page
+  const handleAddBlock = useCallback(
+    (blockTemplateId: string) => {
+      const bt = ALL_BLOCK_TEMPLATES.find((t) => t.id === blockTemplateId)
+      if (!bt) return
+      const newBlock: BlockInstance = {
+        id: `block-${Date.now()}`,
+        blockTemplateId,
+        props: { ...(bt.defaultProps ?? {}) },
+      }
+      updatePages((pages) =>
+        pages.map((p) =>
+          p.slug === selectedPageSlug
+            ? { ...p, blocks: [...p.blocks, newBlock] }
+            : p,
+        ),
+      )
+      setShowBlockLibrary(false)
+    },
+    [selectedPageSlug, updatePages],
+  )
 
-    const blockTemplate = ALL_BLOCK_TEMPLATES.find((t) => t.id === blockTemplateId)
-    if (!blockTemplate) return
+  // Remove block
+  const handleRemoveBlock = useCallback(
+    (blockId: string) => {
+      updatePages((pages) =>
+        pages.map((p) =>
+          p.slug === selectedPageSlug
+            ? { ...p, blocks: p.blocks.filter((b) => b.id !== blockId) }
+            : p,
+        ),
+      )
+      if (editingBlockId === blockId) setEditingBlockId(null)
+    },
+    [selectedPageSlug, editingBlockId, updatePages],
+  )
 
-    const newBlock: BlockInstance = {
-      id: `block-${Date.now()}`,
-      blockTemplateId,
-      props: { ...blockTemplate.defaultProps },
+  // Move block up/down
+  const handleMoveBlock = useCallback(
+    (blockId: string, direction: "up" | "down") => {
+      updatePages((pages) =>
+        pages.map((p) => {
+          if (p.slug !== selectedPageSlug) return p
+          const idx = p.blocks.findIndex((b) => b.id === blockId)
+          if (idx < 0) return p
+          const newIdx = direction === "up" ? idx - 1 : idx + 1
+          if (newIdx < 0 || newIdx >= p.blocks.length) return p
+          const blocks = [...p.blocks]
+          ;[blocks[idx], blocks[newIdx]] = [blocks[newIdx], blocks[idx]]
+          return { ...p, blocks }
+        }),
+      )
+    },
+    [selectedPageSlug, updatePages],
+  )
+
+  // Duplicate block
+  const handleDuplicateBlock = useCallback(
+    (blockId: string) => {
+      updatePages((pages) =>
+        pages.map((p) => {
+          if (p.slug !== selectedPageSlug) return p
+          const idx = p.blocks.findIndex((b) => b.id === blockId)
+          if (idx < 0) return p
+          const clone = {
+            ...p.blocks[idx],
+            id: `block-${Date.now()}`,
+            props: { ...p.blocks[idx].props },
+          }
+          const blocks = [...p.blocks]
+          blocks.splice(idx + 1, 0, clone)
+          return { ...p, blocks }
+        }),
+      )
+    },
+    [selectedPageSlug, updatePages],
+  )
+
+  // Update block props
+  const handleUpdateBlockProp = useCallback(
+    (blockId: string, key: string, value: unknown) => {
+      updatePages((pages) =>
+        pages.map((p) =>
+          p.slug === selectedPageSlug
+            ? {
+                ...p,
+                blocks: p.blocks.map((b) =>
+                  b.id === blockId
+                    ? { ...b, props: { ...b.props, [key]: value } }
+                    : b,
+                ),
+              }
+            : p,
+        ),
+      )
+    },
+    [selectedPageSlug, updatePages],
+  )
+
+  // Page management
+  const handleAddPage = useCallback(() => {
+    const slug = `page-${Date.now()}`
+    const newPage: Page = {
+      id: slug,
+      title: "New Page",
+      slug,
+      blocks: [],
     }
+    updatePages((pages) => [...pages, newPage])
+    setSelectedPageSlug(slug)
+  }, [updatePages])
 
-    const updatedPages = website.pages.map((p) =>
-      p.slug === selectedPageSlug ? { ...p, blocks: [...(p.blocks || []), newBlock] } : p,
-    )
+  const handleDeletePage = useCallback(
+    (slug: string) => {
+      if (!website || website.pages.length <= 1) return
+      updatePages((pages) => pages.filter((p) => p.slug !== slug))
+      if (selectedPageSlug === slug) {
+        const remaining = website.pages.filter((p) => p.slug !== slug)
+        setSelectedPageSlug(remaining[0]?.slug ?? "home")
+      }
+    },
+    [website, selectedPageSlug, updatePages],
+  )
 
-    setWebsite({ ...website, pages: updatedPages })
-    setShowBlockLibrary(false)
-  }
+  const handleRenamePage = useCallback(
+    (slug: string, newTitle: string) => {
+      if (!newTitle.trim()) return
+      updatePages((pages) =>
+        pages.map((p) => (p.slug === slug ? { ...p, title: newTitle.trim() } : p)),
+      )
+      setRenamingPageSlug(null)
+    },
+    [updatePages],
+  )
 
-  // Remove block from page
-  const handleRemoveBlock = (blockId: string) => {
-    if (!website) return
-
-    const updatedPages = website.pages.map((p) =>
-      p.slug === selectedPageSlug
-        ? { ...p, blocks: (p.blocks || []).filter((b) => b.id !== blockId) }
-        : p,
-    )
-
-    setWebsite({ ...website, pages: updatedPages })
-  }
-
-  // Reorder blocks
-  const handleReorderBlocks = (fromIndex: number, toIndex: number) => {
-    if (!website) return
-
-    const page = website.pages.find((p) => p.slug === selectedPageSlug)
-    if (!page || !page.blocks) return
-
-    const blocks = [...page.blocks]
-    const [removed] = blocks.splice(fromIndex, 1)
-    blocks.splice(toIndex, 0, removed)
-
-    const updatedPages = website.pages.map((p) =>
-      p.slug === selectedPageSlug ? { ...p, blocks } : p,
-    )
-
-    setWebsite({ ...website, pages: updatedPages })
-  }
-
-  // Save website
-  const handleSave = () => {
+  // Save
+  const handleSave = useCallback(() => {
     if (website && onSave) {
       onSave(website)
     }
-  }
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
+  }, [website, onSave])
 
+  // ── Template Selector ──
   if (step === "template-select") {
     return <TemplateSelector onSelect={handleSelectTemplate} />
   }
 
-  if (!website) {
-    return <div>Loading...</div>
-  }
+  if (!website) return <div className="h-screen flex items-center justify-center bg-gray-900 text-white">Loading...</div>
 
+  // ── Editor ──
   return (
-    <div className="h-screen flex bg-gray-900 text-white overflow-hidden">
-      {/* Left Sidebar - Pages & Blocks */}
-      <div className="w-64 border-r border-gray-700 flex flex-col bg-gray-800">
+    <div className="h-screen flex bg-gray-950 text-white overflow-hidden">
+      {/* ────── LEFT SIDEBAR ────── */}
+      <div className="w-72 border-r border-gray-800 flex flex-col bg-gray-900">
         {/* Header */}
-        <div className="p-4 border-b border-gray-700">
-          <h1 className="text-lg font-bold mb-4">Website Builder</h1>
+        <div className="p-4 border-b border-gray-800">
+          <div className="flex items-center justify-between mb-3">
+            <h1 className="text-base font-bold tracking-tight">Website Builder</h1>
+          </div>
           <button
             onClick={() => setStep("template-select")}
-            className="text-sm text-blue-400 hover:text-blue-300 mb-4"
+            className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 transition"
           >
-            ← Change Template
+            <ArrowLeft className="w-3 h-3" /> Change Template
           </button>
         </div>
 
-        {/* Pages List */}
+        {/* Pages */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4">
-            <h2 className="text-sm font-bold text-gray-400 mb-3 uppercase">Pages</h2>
-            <div className="space-y-2">
-              {website.pages.map((page) => (
-                <button
+          <div className="p-3">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Pages</h2>
+              <button
+                onClick={handleAddPage}
+                className="p-1 hover:bg-gray-800 rounded transition"
+                title="Add page"
+              >
+                <Plus className="w-3.5 h-3.5 text-gray-400" />
+              </button>
+            </div>
+
+            <div className="space-y-1">
+              {website.pages.map((page, idx) => (
+                <div
                   key={page.slug}
+                  className={`group flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition ${
+                    selectedPageSlug === page.slug
+                      ? "bg-blue-600/20 border border-blue-500/40 text-blue-200"
+                      : "hover:bg-gray-800/60 text-gray-400 hover:text-gray-200"
+                  }`}
                   onClick={() => {
                     setSelectedPageSlug(page.slug)
                     setEditingBlockId(null)
                   }}
-                  className={`w-full text-left px-3 py-2 rounded transition ${
-                    selectedPageSlug === page.slug
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
                 >
-                  <span className="text-sm font-medium">{page.title}</span>
-                  <span className="text-xs text-gray-400 block">
-                    {(page.blocks || []).length} blocks
-                  </span>
-                </button>
+                  <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    {renamingPageSlug === page.slug ? (
+                      <input
+                        type="text"
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onBlur={() => handleRenamePage(page.slug, renameValue)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") handleRenamePage(page.slug, renameValue)
+                          if (e.key === "Escape") setRenamingPageSlug(null)
+                        }}
+                        className="w-full bg-gray-800 text-white text-xs px-2 py-0.5 rounded border border-gray-600 outline-none focus:border-blue-500"
+                        autoFocus
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    ) : (
+                      <>
+                        <p className="text-xs font-medium truncate">{page.title}</p>
+                        <p className="text-[10px] text-gray-500">
+                          {page.blocks.length} block{page.blocks.length !== 1 ? "s" : ""}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                  {/* Actions */}
+                  <div className="hidden group-hover:flex items-center gap-0.5">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setRenamingPageSlug(page.slug)
+                        setRenameValue(page.title)
+                      }}
+                      className="p-0.5 hover:bg-gray-700 rounded"
+                      title="Rename"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                    {website.pages.length > 1 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeletePage(page.slug)
+                        }}
+                        className="p-0.5 hover:bg-red-900/50 rounded text-red-400"
+                        title="Delete page"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           </div>
 
           {/* Block Library */}
-          <div className="p-4 border-t border-gray-700">
+          <div className="p-3 border-t border-gray-800">
             <button
               onClick={() => setShowBlockLibrary(!showBlockLibrary)}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition text-sm"
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition text-xs"
             >
-              {showBlockLibrary ? "Hide" : "Add Block"}
+              {showBlockLibrary ? (
+                <>
+                  <X className="w-3.5 h-3.5" /> Close Library
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3.5 h-3.5" /> Add Block
+                </>
+              )}
             </button>
 
             {showBlockLibrary && (
-              <div className="mt-4 space-y-2 max-h-64 overflow-y-auto">
-                {ALL_BLOCK_TEMPLATES.slice(0, 15).map((block) => (
-                  <button
-                    key={block.id}
-                    onClick={() => handleAddBlock(block.id)}
-                    className="w-full text-left px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition"
-                    title={block.description}
-                  >
-                    <span className="font-medium text-white">{block.name}</span>
-                  </button>
-                ))}
+              <div className="mt-3 space-y-3">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+                  <input
+                    type="text"
+                    placeholder="Search blocks..."
+                    value={blockSearch}
+                    onChange={(e) => setBlockSearch(e.target.value)}
+                    className="w-full pl-8 pr-3 py-1.5 bg-gray-800 text-xs rounded-lg border border-gray-700 outline-none focus:border-blue-500 text-white placeholder-gray-500"
+                  />
+                </div>
+
+                {/* Categories */}
+                <div className="flex flex-wrap gap-1">
+                  {BLOCK_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setBlockCategoryFilter(cat.id)}
+                      className={`px-2 py-0.5 text-[10px] rounded-full transition ${
+                        blockCategoryFilter === cat.id
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-800 text-gray-400 hover:bg-gray-700"
+                      }`}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Block List */}
+                <div className="max-h-56 overflow-y-auto space-y-1 pr-1">
+                  {filteredBlocks.map((block) => (
+                    <button
+                      key={block.id}
+                      onClick={() => handleAddBlock(block.id)}
+                      className="w-full text-left px-3 py-2 bg-gray-800/60 hover:bg-gray-700/80 rounded-lg text-xs transition border border-transparent hover:border-gray-600"
+                    >
+                      <span className="font-medium text-white block">{block.name}</span>
+                      <span className="text-[10px] text-gray-500">{block.description}</span>
+                    </button>
+                  ))}
+                  {filteredBlocks.length === 0 && (
+                    <p className="text-xs text-gray-500 text-center py-4">No blocks found</p>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Save Button */}
-        <div className="p-4 border-t border-gray-700">
+        {/* Save */}
+        <div className="p-3 border-t border-gray-800">
           <button
             onClick={handleSave}
-            className="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold transition"
+            className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg font-bold transition text-sm ${
+              saved
+                ? "bg-green-600 text-white"
+                : "bg-emerald-600 hover:bg-emerald-700 text-white"
+            }`}
           >
-            Save & Publish
+            {saved ? (
+              <>
+                <Check className="w-4 h-4" /> Saved!
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4" /> Save & Publish
+              </>
+            )}
           </button>
         </div>
       </div>
 
-      {/* Center - Canvas Preview */}
+      {/* ────── CENTER CANVAS ────── */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Bar */}
-        <div className="h-12 bg-gray-800 border-b border-gray-700 flex items-center px-6 gap-4">
-          <h2 className="font-bold text-white">
-            {website.pages.find((p) => p.slug === selectedPageSlug)?.title}
+        <div className="h-11 bg-gray-900 border-b border-gray-800 flex items-center px-5 gap-4">
+          <h2 className="text-sm font-semibold text-gray-200 truncate">
+            {currentPage?.title ?? "Select a page"}
           </h2>
-          <div className="ml-auto flex gap-2">
-            <button className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">
-              Desktop
+          <span className="text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded">
+            /{currentPage?.slug}
+          </span>
+          <div className="ml-auto flex items-center gap-1 bg-gray-800 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode("desktop")}
+              className={`p-1.5 rounded transition ${viewMode === "desktop" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              title="Desktop view"
+            >
+              <Monitor className="w-3.5 h-3.5" />
             </button>
-            <button className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded transition">
-              Mobile
+            <button
+              onClick={() => setViewMode("mobile")}
+              className={`p-1.5 rounded transition ${viewMode === "mobile" ? "bg-gray-700 text-white" : "text-gray-500 hover:text-gray-300"}`}
+              title="Mobile view"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* Canvas Area */}
-        <div className="flex-1 overflow-auto bg-gray-900 p-6">
-          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-2xl overflow-hidden">
-            <PageRenderer
-              website={website}
-              pageSlug={selectedPageSlug}
-              editMode={true}
-              onSelectBlock={setEditingBlockId}
-            />
+        {/* Canvas */}
+        <div className="flex-1 overflow-auto bg-gray-950 p-6">
+          <div
+            className={`mx-auto bg-white rounded-xl shadow-2xl overflow-hidden transition-all duration-300 ${
+              viewMode === "mobile" ? "max-w-sm" : "max-w-5xl"
+            }`}
+          >
+            {currentPage && currentPage.blocks.length > 0 ? (
+              <PageRenderer
+                website={website}
+                pageSlug={selectedPageSlug}
+                editMode={true}
+                onSelectBlock={setEditingBlockId}
+              />
+            ) : (
+              <div className="py-32 text-center text-gray-400">
+                <LayoutGrid className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium text-gray-600 mb-2">No blocks yet</p>
+                <p className="text-sm text-gray-400 mb-6">Add blocks from the sidebar to build this page</p>
+                <button
+                  onClick={() => setShowBlockLibrary(true)}
+                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg font-medium transition text-sm"
+                >
+                  <Plus className="w-4 h-4" /> Add First Block
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Right Sidebar - Block Editor */}
-      {editingBlockId && (
-        <div className="w-80 border-l border-gray-700 flex flex-col bg-gray-800 overflow-y-auto">
-          <div className="p-4 border-b border-gray-700 flex items-center justify-between">
-            <h3 className="font-bold">Block Settings</h3>
+      {/* ────── RIGHT SIDEBAR — Block Editor ────── */}
+      {editingBlockId && editingBlock && editingBlockTemplate && (
+        <div className="w-80 border-l border-gray-800 flex flex-col bg-gray-900 overflow-y-auto">
+          {/* Header */}
+          <div className="p-4 border-b border-gray-800 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold">{editingBlockTemplate.name}</h3>
+              <p className="text-[10px] text-gray-500 mt-0.5">{editingBlockTemplate.description}</p>
+            </div>
             <button
               onClick={() => setEditingBlockId(null)}
-              className="text-gray-400 hover:text-white"
+              className="p-1 hover:bg-gray-800 rounded transition text-gray-400 hover:text-white"
             >
-              ✕
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="p-4 space-y-4 flex-1">
-            <div className="bg-gray-700 p-4 rounded">
-              <p className="text-sm text-gray-400">Block ID</p>
-              <p className="text-sm font-mono text-white break-all">{editingBlockId}</p>
+          <div className="flex-1 p-4 space-y-4">
+            {/* Quick Actions */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleMoveBlock(editingBlockId, "up")}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-xs transition"
+                title="Move up"
+              >
+                <ChevronUp className="w-3.5 h-3.5" /> Up
+              </button>
+              <button
+                onClick={() => handleMoveBlock(editingBlockId, "down")}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-xs transition"
+                title="Move down"
+              >
+                <ChevronDown className="w-3.5 h-3.5" /> Down
+              </button>
+              <button
+                onClick={() => handleDuplicateBlock(editingBlockId)}
+                className="flex-1 flex items-center justify-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 px-3 py-2 rounded-lg text-xs transition"
+                title="Duplicate"
+              >
+                <Copy className="w-3.5 h-3.5" /> Clone
+              </button>
             </div>
 
+            {/* Editable Props */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Block Properties
-              </label>
-              <p className="text-xs text-gray-500">
-                Edit properties for this block (coming soon)
-              </p>
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Properties</h4>
+              <div className="space-y-3">
+                {renderBlockProps(editingBlock, editingBlockTemplate, handleUpdateBlockProp)}
+              </div>
             </div>
 
-            <button
-              onClick={() => {
-                handleRemoveBlock(editingBlockId)
-                setEditingBlockId(null)
-              }}
-              className="w-full bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition text-sm"
-            >
-              Delete Block
-            </button>
+            {/* Delete */}
+            <div className="pt-4 border-t border-gray-800">
+              <button
+                onClick={() => {
+                  handleRemoveBlock(editingBlockId)
+                  setEditingBlockId(null)
+                }}
+                className="w-full flex items-center justify-center gap-2 bg-red-900/30 hover:bg-red-900/50 text-red-400 hover:text-red-300 px-4 py-2.5 rounded-lg font-medium transition text-xs border border-red-900/40"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete Block
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -302,102 +713,279 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
   )
 }
 
-/**
- * Template Selector Component
- */
+// ============================================
+// BLOCK PROPERTY EDITOR
+// ============================================
+
+function renderBlockProps(
+  block: BlockInstance,
+  template: BlockTemplate,
+  onUpdate: (blockId: string, key: string, value: unknown) => void,
+) {
+  const props = block.props ?? {}
+  const editableTextKeys = template.customizable?.text ?? []
+  const editableColorKeys = template.customizable?.colors ?? []
+  const editableSettingsKeys = template.customizable?.settings ?? []
+  const allEditableKeys = [...editableTextKeys, ...editableColorKeys, ...editableSettingsKeys]
+
+  // If template defines customizable fields, show those
+  if (allEditableKeys.length > 0) {
+    return allEditableKeys.map((key) => {
+      const value = props[key]
+      if (editableColorKeys.includes(key)) {
+        return (
+          <div key={key}>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">{key}</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="color"
+                value={typeof value === "string" ? value : "#2563eb"}
+                onChange={(e) => onUpdate(block.id, key, e.target.value)}
+                className="w-8 h-8 rounded border border-gray-700 cursor-pointer bg-transparent"
+              />
+              <input
+                type="text"
+                value={typeof value === "string" ? value : ""}
+                onChange={(e) => onUpdate(block.id, key, e.target.value)}
+                className="flex-1 bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:border-blue-500"
+              />
+            </div>
+          </div>
+        )
+      }
+      if (typeof value === "boolean") {
+        return (
+          <div key={key} className="flex items-center justify-between">
+            <label className="text-xs text-gray-300">{formatLabel(key)}</label>
+            <button
+              onClick={() => onUpdate(block.id, key, !value)}
+              className={`w-9 h-5 rounded-full transition ${value ? "bg-blue-600" : "bg-gray-700"}`}
+            >
+              <div className={`w-3.5 h-3.5 bg-white rounded-full transition-transform mx-0.5 ${value ? "translate-x-4" : ""}`} />
+            </button>
+          </div>
+        )
+      }
+      if (typeof value === "number") {
+        return (
+          <div key={key}>
+            <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">{formatLabel(key)}</label>
+            <input
+              type="number"
+              value={value}
+              onChange={(e) => onUpdate(block.id, key, Number(e.target.value))}
+              className="w-full bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:border-blue-500"
+            />
+          </div>
+        )
+      }
+      // Default: text input
+      return (
+        <div key={key}>
+          <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">{formatLabel(key)}</label>
+          <input
+            type="text"
+            value={typeof value === "string" ? value : ""}
+            onChange={(e) => onUpdate(block.id, key, e.target.value)}
+            className="w-full bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:border-blue-500"
+          />
+        </div>
+      )
+    })
+  }
+
+  // Fallback: show common editable props from the block's actual data
+  const commonProps = ["title", "subtitle", "description"]
+  const found = commonProps.filter((k) => typeof props[k] === "string")
+
+  if (found.length === 0) {
+    return (
+      <p className="text-xs text-gray-500 italic">
+        This block has no editable properties.
+      </p>
+    )
+  }
+
+  return found.map((key) => (
+    <div key={key}>
+      <label className="block text-[10px] text-gray-500 uppercase tracking-wider mb-1">{formatLabel(key)}</label>
+      {(props[key] as string).length > 60 ? (
+        <textarea
+          value={props[key] as string}
+          onChange={(e) => onUpdate(block.id, key, e.target.value)}
+          rows={3}
+          className="w-full bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:border-blue-500 resize-none"
+        />
+      ) : (
+        <input
+          type="text"
+          value={props[key] as string}
+          onChange={(e) => onUpdate(block.id, key, e.target.value)}
+          className="w-full bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg border border-gray-700 outline-none focus:border-blue-500"
+        />
+      )}
+    </div>
+  ))
+}
+
+function formatLabel(key: string): string {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/[_-]/g, " ")
+    .replace(/^\w/, (c) => c.toUpperCase())
+    .trim()
+}
+
+// ============================================
+// TEMPLATE SELECTOR (with proper previews)
+// ============================================
+
+const CATEGORY_CONFIG: Record<string, { color: string; gradient: string; icon: string }> = {
+  luxury: { color: "#d4af37", gradient: "from-amber-900 to-yellow-800", icon: "Crown" },
+  mainstream: { color: "#3b82f6", gradient: "from-blue-900 to-blue-700", icon: "Building" },
+  specialized: { color: "#8b5cf6", gradient: "from-purple-900 to-violet-700", icon: "Sparkles" },
+  industry: { color: "#10b981", gradient: "from-emerald-900 to-green-700", icon: "Factory" },
+}
+
 function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
 
   const categories = ["luxury", "mainstream", "specialized", "industry"]
-  const templates = selectedCategory
-    ? ALL_WEBSITE_TEMPLATES.filter((t) => t.category === selectedCategory)
-    : ALL_WEBSITE_TEMPLATES
+
+  const templates = useMemo(() => {
+    let result = ALL_WEBSITE_TEMPLATES
+    if (selectedCategory) {
+      result = result.filter((t) => t.category === selectedCategory)
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      result = result.filter(
+        (t) =>
+          t.name.toLowerCase().includes(q) ||
+          t.description?.toLowerCase().includes(q) ||
+          t.tags?.some((tag: string) => tag.toLowerCase().includes(q)),
+      )
+    }
+    return result
+  }, [selectedCategory, searchQuery])
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Choose a Template</h1>
-          <p className="text-gray-400 text-lg">
-            Select a template to get started building your real estate website
+    <div className="min-h-screen bg-gray-950 text-white">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-gray-950/95 backdrop-blur-md border-b border-gray-800">
+        <div className="max-w-7xl mx-auto px-6 py-6">
+          <h1 className="text-3xl font-bold mb-1 tracking-tight">Choose a Template</h1>
+          <p className="text-gray-400 text-sm">
+            {ALL_WEBSITE_TEMPLATES.length} professional real estate templates
           </p>
-        </div>
 
-        {/* Category Filter */}
-        <div className="flex justify-center gap-4 mb-12">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`px-6 py-2 rounded-lg font-medium transition ${
-              selectedCategory === null
-                ? "bg-blue-600 text-white"
-                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-            }`}
-          >
-            All Templates
-          </button>
-          {categories.map((cat) => (
+          <div className="mt-5 flex flex-wrap items-center gap-3">
+            {/* Category Pills */}
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-6 py-2 rounded-lg font-medium transition capitalize ${
-                selectedCategory === cat
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+              onClick={() => setSelectedCategory(null)}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition ${
+                selectedCategory === null
+                  ? "bg-white text-gray-900"
+                  : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
               }`}
             >
-              {cat}
+              All ({ALL_WEBSITE_TEMPLATES.length})
             </button>
-          ))}
-        </div>
-
-        {/* Templates Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {templates.map((template) => (
-            <div
-              key={template.id}
-              className="group bg-gray-800 rounded-lg overflow-hidden hover:shadow-2xl transition cursor-pointer border border-gray-700 hover:border-blue-500"
-              onClick={() => onSelect(template.id)}
-            >
-              {/* Preview Image */}
-              <div className="h-48 bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-gray-400 group-hover:from-blue-700 group-hover:to-blue-900 transition relative overflow-hidden">
-                <div className="absolute inset-0 opacity-10">
-                  <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                    <rect x="10" y="10" width="80" height="20" fill="currentColor" />
-                    <rect x="10" y="35" width="80" height="50" fill="currentColor" opacity="0.5" />
-                  </svg>
-                </div>
-                <div className="text-center relative z-10">
-                  <p className="text-sm text-gray-300 group-hover:text-gray-200">Preview</p>
-                </div>
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <h3 className="text-lg font-bold mb-2 group-hover:text-blue-400 transition">
-                  {template.name}
-                </h3>
-                <p className="text-gray-400 text-sm mb-4">{template.description}</p>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500 capitalize">{template.category}</span>
-                  <span className="text-xs bg-blue-900 text-blue-200 px-3 py-1 rounded">
-                    {template.pages.length} pages
-                  </span>
-                </div>
-
-                <button className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition">
-                  Select Template
+            {categories.map((cat) => {
+              const count = ALL_WEBSITE_TEMPLATES.filter((t) => t.category === cat).length
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                  className={`px-4 py-1.5 rounded-full text-xs font-medium transition capitalize ${
+                    selectedCategory === cat
+                      ? "bg-white text-gray-900"
+                      : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200"
+                  }`}
+                >
+                  {cat} ({count})
                 </button>
-              </div>
+              )
+            })}
+
+            {/* Search */}
+            <div className="ml-auto relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+              <input
+                type="text"
+                placeholder="Search templates..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 pr-4 py-1.5 bg-gray-800 text-xs rounded-full border border-gray-700 outline-none focus:border-blue-500 text-white placeholder-gray-500 w-52"
+              />
             </div>
-          ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {templates.map((template) => {
+            const catConfig = CATEGORY_CONFIG[template.category ?? "mainstream"] ?? CATEGORY_CONFIG.mainstream
+            const pageCount = template.pages.length
+            const hasPageObjects = template.pages.some((p: unknown) => typeof p === "object")
+
+            return (
+              <div
+                key={template.id}
+                className="group bg-gray-900 rounded-xl overflow-hidden hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-200 cursor-pointer border border-gray-800 hover:border-gray-600"
+                onClick={() => onSelect(template.id)}
+              >
+                {/* Preview */}
+                <div className={`h-40 bg-gradient-to-br ${catConfig.gradient} relative overflow-hidden`}>
+                  {/* Layout preview wireframe */}
+                  <div className="absolute inset-4 flex flex-col gap-2 opacity-20 group-hover:opacity-30 transition">
+                    <div className="h-3 bg-white/80 rounded w-3/4" />
+                    <div className="h-2 bg-white/50 rounded w-1/2" />
+                    <div className="flex-1 flex gap-2 mt-1">
+                      <div className="flex-1 bg-white/30 rounded" />
+                      <div className="flex-1 bg-white/30 rounded" />
+                      <div className="flex-1 bg-white/30 rounded" />
+                    </div>
+                    <div className="h-2 bg-white/20 rounded w-full" />
+                  </div>
+                  {/* Category Badge */}
+                  <div className="absolute top-3 left-3">
+                    <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/30 text-white/80 backdrop-blur-sm">
+                      {template.category}
+                    </span>
+                  </div>
+                  {/* Page count */}
+                  <div className="absolute bottom-3 right-3">
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-black/30 text-white/70 backdrop-blur-sm">
+                      {hasPageObjects ? `${pageCount} pages` : `${pageCount} blocks`}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Info */}
+                <div className="p-4">
+                  <h3 className="text-sm font-bold mb-1 group-hover:text-blue-400 transition truncate">
+                    {template.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">
+                    {template.description}
+                  </p>
+
+                  <button className="w-full bg-gray-800 group-hover:bg-blue-600 text-gray-300 group-hover:text-white px-4 py-2 rounded-lg font-medium transition text-xs">
+                    Use Template
+                  </button>
+                </div>
+              </div>
+            )
+          })}
         </div>
 
-        {/* Empty State */}
         {templates.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-400">No templates found in this category</p>
+          <div className="text-center py-20">
+            <p className="text-gray-500 text-sm">No templates match your search</p>
           </div>
         )}
       </div>

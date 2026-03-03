@@ -282,6 +282,7 @@ const SPECIALIZED_BLOCKS: BlockTemplate[] = [
   { id: "cta-banner-block", name: "CTA Banner", description: "Full-width call-to-action banner", category: "cta", component: "CTABannerBlock", tags: ["cta", "banner", "conversion"] },
   { id: "why-choose-us", name: "Why Choose Us", description: "Value proposition section", category: "info", component: "WhyChooseUsBlock", tags: ["about", "value", "benefits"] },
   { id: "blog-grid", name: "Blog Grid", description: "Blog/news article grid", category: "info", component: "BlogGridBlock", tags: ["blog", "news", "articles"] },
+  { id: "services-grid", name: "Services Grid", description: "Service offerings grid", category: "info", component: "BenefitsBlock", tags: ["services", "grid"] },
 ]
 
 // Alias entries — specialized-templates.ts uses "-block" suffix IDs that differ from extended-blocks IDs
@@ -296,6 +297,9 @@ const BLOCK_ALIASES: BlockTemplate[] = [
   { id: "investment-analysis-block", name: "Investment Analysis",     description: "ROI analysis",  category: "info",        component: "InvestmentAnalysisBlock",  tags: ["investment", "analysis"] },
   { id: "similar-properties-block",  name: "Similar Properties",      description: "Related listings", category: "grid",     component: "SimilarPropertiesBlock",   tags: ["similar", "recommendations"] },
   { id: "luxury-amenities-block",    name: "Luxury Amenities",        description: "Luxury features", category: "info",      component: "LuxuryAmenitiesBlock",     tags: ["luxury", "amenities"] },
+  { id: "faq-block",                 name: "FAQ",                     description: "FAQ section",     category: "info",      component: "FAQBlock",                 tags: ["faq"] },
+  { id: "why-choose-us-block",       name: "Why Choose Us",           description: "Value props",     category: "info",      component: "WhyChooseUsBlock",         tags: ["about", "benefits"] },
+  { id: "contact-form-builder-block", name: "Contact Form Builder",   description: "Custom form",     category: "contact-form", component: "ContactFormBuilderBlock", tags: ["form", "builder"] },
 ]
 
 export const ALL_BLOCK_TEMPLATES: BlockTemplate[] = [
