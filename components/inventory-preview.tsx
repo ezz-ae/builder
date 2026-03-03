@@ -48,7 +48,7 @@ export function InventoryPreview({ limit = 6 }: InventoryPreviewProps) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.4em] text-slate-400">Inventory feed</p>
-          <h3 className="text-lg font-semibold text-white">Live inventory from Neon</h3>
+          <h3 className="text-lg font-semibold text-white">Live inventory feed</h3>
         </div>
         <span className="text-xs rounded-full border border-slate-800 px-3 py-1 text-slate-300">Ready to embed</span>
       </div>
@@ -76,7 +76,7 @@ export function InventoryPreview({ limit = 6 }: InventoryPreviewProps) {
       )}
 
       <p className="text-xs text-slate-500">
-        Use `/api/inventory` to stream this data directly into your custom pages or blocks.
+        Use this feed to power listings across your pages and templates.
       </p>
     </section>
   )

@@ -7,9 +7,9 @@ export default function InventoryPage() {
       <header className="px-6 py-16">
         <div className="max-w-5xl mx-auto text-center space-y-4">
           <p className="text-xs uppercase tracking-[0.4em] text-blue-600 font-semibold">Inventory Feed</p>
-          <h1 className="text-4xl md:text-5xl font-bold">Wire the Neon inventory directly to your site</h1>
+          <h1 className="text-4xl md:text-5xl font-bold">Wire your inventory directly to your site</h1>
           <p className="text-lg text-slate-500">
-            Pull live data from Neon’s Mashroi inventory tables and display it on any landing page, template, or custom block.
+            Stream your listings and media into any landing page, template, or custom block.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <Link href="/templates" className="px-5 py-3 rounded-full border border-blue-500 text-sm font-semibold text-blue-700 hover:bg-blue-50 transition">
@@ -26,19 +26,14 @@ export default function InventoryPage() {
         <section className="space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Live Neon audit</p>
-              <h2 className="text-2xl font-bold text-slate-900">inventory_full + PF data</h2>
+              <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Live inventory</p>
+              <h2 className="text-2xl font-bold text-slate-900">Listings and media ready to publish</h2>
             </div>
-            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">127 tables ✓</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-500">Broker-ready ✓</span>
           </div>
           <p className="text-sm text-slate-500">
-            Use `/api/inventory` to stream the `inventory_full` or `entrestaet_master` data into any page. The builder already surfaces these rows inside the template selector so you can drop an inventory section onto your site instantly.
+            The builder already surfaces your inventory inside the template selector so you can drop a listings section onto your site instantly.
           </p>
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-xs font-mono text-slate-600">
-            <p className="text-slate-800 font-semibold mb-2">API sample</p>
-            <code className="block mb-1">GET /api/inventory?limit=12&status=active</code>
-            <code className="block">GET /api/inventory?agencyId=mashroi-agency&status=pf-ready</code>
-          </div>
         </section>
 
         <InventoryPreview limit={8} />
@@ -54,7 +49,7 @@ export default function InventoryPage() {
           <article className="rounded-2xl border border-gray-200 p-6 space-y-3 bg-white shadow-sm">
             <h3 className="text-lg font-semibold">Embed anywhere</h3>
             <p className="text-sm text-slate-500">
-              Fetch `/api/inventory` from client or server code. Iterate over the JSON payload, render cards, or feed it to your dynamic grid component. Want to export? Use the same endpoint inside the builder’s custom block to power live property carousels.
+              Add listings to any page section, grid, or carousel. You decide which properties show up and how they look.
             </p>
           </article>
         </section>

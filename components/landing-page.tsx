@@ -26,30 +26,30 @@ const CATEGORIES = [
 
 const STATUS_METRICS = [
   {
-    label: "Neon tables audited",
+    label: "Listings indexed",
     value: "127",
-    detail: "159K total rows, 85 populated with Mashroi/PF data",
+    detail: "159K total rows, 85 ready for publishing",
     color: "from-slate-900 to-slate-800",
     icon: Database,
   },
   {
     label: "Core inventory rows",
     value: "7,015",
-    detail: "inventory_full + entrestate_master ready for publishing",
+    detail: "Primary listing spine ready for publishing",
     color: "from-cyan-900 to-blue-900",
     icon: Activity,
   },
   {
-    label: "PF gallery health",
+    label: "Media gallery health",
     value: "100%",
-    detail: "PF hero images + CDN verified across every project",
+    detail: "Hero images verified across every project",
     color: "from-emerald-900 to-green-900",
     icon: ShieldCheck,
   },
   {
-    label: "GC projects synced",
+    label: "Projects synced",
     value: "954",
-    detail: "Pulled from gc_projects, known difference vs spine count",
+    detail: "Synced from your master project pipeline",
     color: "from-purple-900 to-indigo-900",
     icon: Server,
   },
@@ -76,7 +76,7 @@ const PUBLIC_EXPERIENCES = [
   },
   {
     title: "Market Analysis",
-    description: "Generate market metrics and insights from Neon inventory data.",
+    description: "Generate market metrics and insights from your inventory data.",
     href: "/market-analysis",
     badge: "Insights",
   },
@@ -188,7 +188,7 @@ export function LandingPage() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <p className="text-xs uppercase tracking-[0.4em] text-cyan-300 mb-1">Status Dashboard</p>
-              <h2 className="text-3xl font-bold">Mashroi + PF ecosystem is live</h2>
+              <h2 className="text-3xl font-bold">Your broker ecosystem is live</h2>
             </div>
             <a
               href="/inventory"

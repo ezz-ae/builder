@@ -4,7 +4,7 @@ import { PAGE_TEMPLATES, STARTER_WEBSITE } from "@/components/templates/real-est
 const SHOWCASE_STATS = [
   { label: "Completed pages", value: PAGE_TEMPLATES.length, detail: "Home, listings, about, contact, and tools" },
   { label: "Starter blocks", value: STARTER_WEBSITE.pages[0]?.blocks.length ?? 0, detail: "Fully assembled hero + grid layouts" },
-  { label: "Inventory sources", value: "inventory_full + PF", detail: "Live Neon feeds powering every grid" },
+  { label: "Inventory sources", value: "Broker listings + media", detail: "Live inventory powering every grid" },
   { label: "AI touchpoints", value: "Gemini 1.5", detail: "Campaigns, SEO copy, WhatsApp follow-ups" },
 ]
 
@@ -16,9 +16,9 @@ export default function ShowcasePage() {
       <header className="px-6 py-12 border-b border-white/10">
         <div className="max-w-5xl mx-auto text-center space-y-4">
           <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Full Site Demos</p>
-          <h1 className="text-4xl md:text-5xl font-bold text-white">See how Mashroi data fills every template</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-white">See how your listings fill every template</h1>
           <p className="text-lg text-slate-200">
-            Watch the builder render Neon inventory, PF hero images, and Gemini-generated marketing copy inside every public page.
+            Watch the builder render live inventory, hero images, and AI-generated marketing copy inside every public page.
           </p>
           <div className="flex justify-center gap-3 flex-wrap">
             <Link href="/builder" className="px-5 py-3 rounded-full border border-cyan-500 text-sm font-semibold text-cyan-100 hover:bg-cyan-500/10 transition">
@@ -62,7 +62,7 @@ export default function ShowcasePage() {
               ))}
             </div>
             <p className="text-sm text-slate-300">
-              The showcased pages are wired to the same Neon `inventory_full`, `entrestaet_master`, and PF sources running in production.
+              The showcased pages are wired to the same live inventory, media, and campaigns you will use in production.
             </p>
           </article>
         </div>

@@ -71,7 +71,7 @@ export default function MarketAnalysisPage() {
       <div className="max-w-5xl mx-auto px-6 py-12 space-y-10">
         <header className="space-y-4 text-center">
           <p className="text-xs uppercase tracking-[0.45em] text-cyan-300">Market analysis</p>
-          <h1 className="text-4xl font-bold">Turn Neon data into market-ready insights</h1>
+          <h1 className="text-4xl font-bold">Turn listings into market-ready insights</h1>
           <p className="text-lg text-slate-300">
             Use this analysis in your templates or drop the Market Metrics block into any builder page.
           </p>
