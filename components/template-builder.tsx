@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from "react"
-import type { Website, Page, BlockInstance } from "./types"
+import type { Website, Page, BlockInstance, PageTemplate } from "./types"
 import { PageRenderer } from "./block-renderer"
 import { ALL_WEBSITE_TEMPLATES } from "./templates/website-templates"
 import { ALL_BLOCK_TEMPLATES } from "./templates/block-registry"
@@ -22,16 +22,61 @@ export function TemplateBuilder({ onSave }: TemplateBuilderProps) {
   const [editingBlockId, setEditingBlockId] = useState<string | null>(null)
   const [showBlockLibrary, setShowBlockLibrary] = useState(false)
 
-  // Load template
+  // Load template — convert WebsiteTemplate (string block IDs) → proper Website with Page objects
   const handleSelectTemplate = (templateId: string) => {
     const template = ALL_WEBSITE_TEMPLATES.find((t) => t.id === templateId)
-    if (template) {
-      setSelectedTemplate(templateId)
-      setWebsite(template as Website)
-      setStep("editor")
-      const firstPage = template.pages[0]
-      setSelectedPageSlug((typeof firstPage === "object" ? firstPage?.slug : undefined) || "home")
+    if (!template) return
+
+    // Separate actual PageTemplate objects from raw string block IDs
+    const templatePages = template.pages as (PageTemplate | string)[]
+    const pageObjects = templatePages.filter((p: PageTemplate | string): p is PageTemplate => typeof p === "object")
+    const blockIds = templatePages.filter((p: PageTemplate | string): p is string => typeof p === "string")
+
+    let pages: Page[]
+
+    if (pageObjects.length > 0) {
+      // Templates that use real PageTemplate objects
+      pages = pageObjects.map((pt: PageTemplate, i: number) => ({
+        id: `page-${i}`,
+        title: pt.name,
+        slug: pt.slug ?? pt.category,
+        blocks: pt.blocks.map((bt: import("./types").BlockTemplate, j: number) => ({
+          id: `block-${i}-${j}`,
+          blockTemplateId: bt.id,
+          props: { ...(bt.defaultProps ?? {}) },
+        })),
+      }))
+    } else {
+      // Templates that store a flat list of block IDs → single "Home" page
+      const blocks: BlockInstance[] = blockIds
+        .map((blockId: string, j: number) => {
+          const bt = ALL_BLOCK_TEMPLATES.find((b) => b.id === blockId)
+          if (!bt) return null
+          return {
+            id: `block-0-${j}`,
+            blockTemplateId: bt.id,
+            props: { ...(bt.defaultProps ?? {}) },
+          } as BlockInstance
+        })
+        .filter((b): b is BlockInstance => b !== null)
+
+      pages = [{ id: "page-home", title: "Home", slug: "home", blocks }]
     }
+
+    const website: Website = {
+      id: `website-${Date.now()}`,
+      name: template.name,
+      pages,
+      settings: template.defaultSettings,
+      template: templateId,
+      category: template.category,
+      description: template.description,
+    }
+
+    setSelectedTemplate(templateId)
+    setWebsite(website)
+    setStep("editor")
+    setSelectedPageSlug(pages[0].slug)
   }
 
   // Add block to page

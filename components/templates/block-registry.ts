@@ -5,12 +5,13 @@
  */
 
 import type { BlockTemplate } from "../types"
+import { ALL_EXTENDED_BLOCKS } from "./extended-blocks"
 
 // ============================================
 // BLOCK TEMPLATES REGISTRY
 // ============================================
 
-export const ALL_BLOCK_TEMPLATES: BlockTemplate[] = [
+const CORE_BLOCKS: BlockTemplate[] = [
   // HERO BLOCKS
   {
     id: "hero-default",
@@ -266,6 +267,42 @@ export const ALL_BLOCK_TEMPLATES: BlockTemplate[] = [
     tags: ["footer", "contact", "newsletter"],
     createdAt: new Date().toISOString(),
   },
+]
+
+// Specialized template blocks (AI, map, rental, metrics, etc.)
+const SPECIALIZED_BLOCKS: BlockTemplate[] = [
+  { id: "ai-chat-block", name: "AI Chat Assistant", description: "AI-powered chat widget", category: "info", component: "AIChatBlock", tags: ["ai", "chat", "assistant"] },
+  { id: "interactive-map-block", name: "Interactive Map", description: "Searchable property map", category: "info", component: "InteractiveMapBlock", tags: ["map", "search", "location"] },
+  { id: "rental-features-block", name: "Rental Features", description: "Rental property highlights", category: "info", component: "RentalFeaturesBlock", tags: ["rental", "features"] },
+  { id: "product-launch-block", name: "Product Launch", description: "New development launch banner", category: "hero", component: "ProductLaunchBlock", tags: ["launch", "new", "development"] },
+  { id: "limited-offer-block", name: "Limited Offer", description: "Urgency/scarcity offer block", category: "cta", component: "LimitedOfferBlock", tags: ["offer", "urgency", "cta"] },
+  { id: "property-report-block", name: "Property Report", description: "Detailed property analysis report", category: "info", component: "PropertyReportBlock", tags: ["report", "analysis"] },
+  { id: "investment-metrics-block", name: "Investment Metrics", description: "Key investment metrics dashboard", category: "info", component: "InvestmentMetricsBlock", tags: ["investment", "metrics", "roi"] },
+  { id: "market-metrics-block", name: "Market Metrics", description: "Real estate market statistics", category: "info", component: "MarketMetricsBlock", tags: ["market", "stats", "metrics"] },
+  { id: "cta-banner-block", name: "CTA Banner", description: "Full-width call-to-action banner", category: "cta", component: "CTABannerBlock", tags: ["cta", "banner", "conversion"] },
+  { id: "why-choose-us", name: "Why Choose Us", description: "Value proposition section", category: "info", component: "WhyChooseUsBlock", tags: ["about", "value", "benefits"] },
+  { id: "blog-grid", name: "Blog Grid", description: "Blog/news article grid", category: "info", component: "BlogGridBlock", tags: ["blog", "news", "articles"] },
+]
+
+// Alias entries — specialized-templates.ts uses "-block" suffix IDs that differ from extended-blocks IDs
+const BLOCK_ALIASES: BlockTemplate[] = [
+  { id: "hero-block",                name: "Hero Section",            description: "Hero banner", category: "hero",          component: "HeroBlock",               tags: ["hero"] },
+  { id: "listings-grid-block",       name: "Listings Grid",           description: "Property grid", category: "listings-grid", component: "ListingsGridBlock",        tags: ["grid", "listings"] },
+  { id: "contact-form-block",        name: "Contact Form",            description: "Contact form", category: "contact-form",  component: "ContactFormBlock",         tags: ["form", "contact"] },
+  { id: "property-features-block",   name: "Property Features",       description: "Features list", category: "info",         component: "PropertyFeaturesBlock",    tags: ["features"] },
+  { id: "property-specs-block",      name: "Property Specs",          description: "Specs table",   category: "info",         component: "PropertySpecsBlock",       tags: ["specs"] },
+  { id: "video-hero-block",          name: "Video Hero",              description: "Video hero",    category: "hero",         component: "VideoHeroBlock",           tags: ["video", "hero"] },
+  { id: "open-house-block",          name: "Open House",              description: "Open house info", category: "info",       component: "OpenHouseBlock",           tags: ["event", "open-house"] },
+  { id: "investment-analysis-block", name: "Investment Analysis",     description: "ROI analysis",  category: "info",        component: "InvestmentAnalysisBlock",  tags: ["investment", "analysis"] },
+  { id: "similar-properties-block",  name: "Similar Properties",      description: "Related listings", category: "grid",     component: "SimilarPropertiesBlock",   tags: ["similar", "recommendations"] },
+  { id: "luxury-amenities-block",    name: "Luxury Amenities",        description: "Luxury features", category: "info",      component: "LuxuryAmenitiesBlock",     tags: ["luxury", "amenities"] },
+]
+
+export const ALL_BLOCK_TEMPLATES: BlockTemplate[] = [
+  ...CORE_BLOCKS,
+  ...ALL_EXTENDED_BLOCKS,
+  ...SPECIALIZED_BLOCKS,
+  ...BLOCK_ALIASES,
 ]
 
 // ============================================
