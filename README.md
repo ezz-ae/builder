@@ -82,6 +82,7 @@ http://localhost:3002
 - `GET /api/listings` – filter listings by agency, status, price, and keyword to preview live data
 - `GET /api/agents` – pull the roster for any agency to populate agent grids
 - `GET /api/templates` – stream every curated template and the categories they belong to
+- `GET /api/market-analysis` – fetch area insights + market metrics for market analysis blocks
 - `POST /api/ai/chat` – feed property details to Vertex Gemini and receive marketing campaigns + SEO descriptions
 
 ## 🔥 Live Experiences

@@ -278,7 +278,30 @@ const SPECIALIZED_BLOCKS: BlockTemplate[] = [
   { id: "limited-offer-block", name: "Limited Offer", description: "Urgency/scarcity offer block", category: "cta", component: "LimitedOfferBlock", tags: ["offer", "urgency", "cta"] },
   { id: "property-report-block", name: "Property Report", description: "Detailed property analysis report", category: "info", component: "PropertyReportBlock", tags: ["report", "analysis"] },
   { id: "investment-metrics-block", name: "Investment Metrics", description: "Key investment metrics dashboard", category: "info", component: "InvestmentMetricsBlock", tags: ["investment", "metrics", "roi"] },
-  { id: "market-metrics-block", name: "Market Metrics", description: "Real estate market statistics", category: "info", component: "MarketMetricsBlock", tags: ["market", "stats", "metrics"] },
+  {
+    id: "market-metrics-block",
+    name: "Market Metrics",
+    description: "Real estate market statistics",
+    category: "info",
+    component: "MarketMetricsBlock",
+    requires: ["marketMetrics"],
+    customizable: {
+      text: ["title"],
+      settings: ["backgroundColor"],
+    },
+    defaultProps: {
+      title: "Market Intelligence",
+      backgroundColor: "from-slate-900 to-slate-800",
+    },
+    dataBindings: [
+      {
+        elementKey: "marketMetrics",
+        dataPath: "marketMetrics",
+        type: "repeater",
+      },
+    ],
+    tags: ["market", "stats", "metrics"],
+  },
   { id: "cta-banner-block", name: "CTA Banner", description: "Full-width call-to-action banner", category: "cta", component: "CTABannerBlock", tags: ["cta", "banner", "conversion"] },
   { id: "why-choose-us", name: "Why Choose Us", description: "Value proposition section", category: "info", component: "WhyChooseUsBlock", tags: ["about", "value", "benefits"] },
   { id: "blog-grid", name: "Blog Grid", description: "Blog/news article grid", category: "info", component: "BlogGridBlock", tags: ["blog", "news", "articles"] },

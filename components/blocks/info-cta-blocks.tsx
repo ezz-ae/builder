@@ -400,13 +400,59 @@ export function MarketMetricsBlock({
   data?: Record<string, unknown>
   settings?: WebsiteSettings
 }) {
+  const formatPrice = (value: number) =>
+    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value)
+
+  const resolveMetrics = () => {
+    const directMetrics = (data?.marketMetrics as Array<{ label: string; value: string; trend?: string }>) ?? null
+    if (Array.isArray(directMetrics) && directMetrics.length > 0) {
+      return directMetrics
+    }
+
+    const insights = (data?.marketInsights ?? data?.marketAnalysis) as Record<string, unknown> | undefined
+    if (insights && typeof insights === "object") {
+      const averagePrice = insights.averagePrice as number | undefined
+      const priceRange = insights.priceRange as { min?: number; max?: number } | undefined
+      const avgDays = insights.averageDaysOnMarket as number | undefined
+      const trend = insights.marketTrend as string | undefined
+      const walkscore = insights.walkscore as number | undefined
+
+      return [
+        {
+          label: "Average Price",
+          value: averagePrice ? formatPrice(averagePrice) : "—",
+          trend: trend ? String(trend) : undefined,
+        },
+        {
+          label: "Price Range",
+          value:
+            priceRange?.min && priceRange?.max
+              ? `${formatPrice(priceRange.min)} - ${formatPrice(priceRange.max)}`
+              : "—",
+        },
+        {
+          label: "Avg Days on Market",
+          value: typeof avgDays === "number" ? `${avgDays} days` : "—",
+        },
+        {
+          label: "Walkscore",
+          value: typeof walkscore === "number" ? `${walkscore}` : "—",
+        },
+      ]
+    }
+
+    return metrics
+  }
+
+  const resolvedMetrics = resolveMetrics()
+
   return (
     <section className={`w-full py-16 px-4 md:px-8 bg-gradient-to-br ${backgroundColor}`}>
       <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-12">{title}</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {metrics.map((metric, idx) => (
+          {resolvedMetrics.map((metric, idx) => (
             <div
               key={idx}
               className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-6 text-center hover:bg-white/20 transition"

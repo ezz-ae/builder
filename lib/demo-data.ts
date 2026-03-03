@@ -323,5 +323,22 @@ export function getDemoData(): Record<string, unknown> {
       logoUrl: DEMO_AGENCY.logo,
     },
     testimonials: DEMO_TESTIMONIALS,
+    marketMetrics: [
+      { label: "Off-Plan Projects", value: "954", trend: "↑ 12%" },
+      { label: "Average Yield", value: "5.8%", trend: "↑ 0.3%" },
+      { label: "Price Growth", value: "8.2%", trend: "↑ YoY" },
+      { label: "Active Buyers", value: "15K+", trend: "↑ 23%" },
+    ],
+    marketInsights: {
+      marketTrend: "Strong buyer demand",
+      averagePrice: 2500000,
+      priceRange: { min: 1800000, max: 3200000 },
+      populationGrowth: 3.2,
+      averageDaysOnMarket: 18,
+      schoolRating: 8,
+      crimeRate: "Low",
+      walkscore: 78,
+      topNeighborhoodTraits: ["Family-friendly", "Great schools", "Parks & recreation", "Shopping & dining"],
+    },
   }
 }

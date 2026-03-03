@@ -42,6 +42,7 @@ const BLOCK_PAGE_MAP: Record<string, { page: string; title: string }> = {
   "price-breakdown": { page: "listing-detail", title: "Property Detail" },
   "similar-properties": { page: "listings", title: "Listings" },
   "investment-analysis": { page: "tools", title: "Tools" },
+  "market-metrics-block": { page: "tools", title: "Tools" },
   "open-house": { page: "events", title: "Events" },
   "luxury-amenities": { page: "listing-detail", title: "Property Detail" },
   "neighborhood-info": { page: "listing-detail", title: "Property Detail" },
