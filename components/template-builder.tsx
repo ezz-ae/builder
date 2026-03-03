@@ -1023,11 +1023,18 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [previewTemplate, setPreviewTemplate] = useState<WebsiteTemplate | null>(null)
+  const [previewPageSlug, setPreviewPageSlug] = useState<string>("home")
 
   const previewWebsite = useMemo(
     () => (previewTemplate ? buildWebsiteFromTemplate(previewTemplate, { preview: true }) : null),
     [previewTemplate],
   )
+
+  useEffect(() => {
+    if (previewWebsite?.pages?.length) {
+      setPreviewPageSlug(previewWebsite.pages[0]?.slug ?? "home")
+    }
+  }, [previewWebsite])
 
   const categories = ["luxury", "mainstream", "specialized", "industry"]
 
@@ -1259,8 +1266,23 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
             </div>
             <div className="grid lg:grid-cols-[1.5fr_0.7fr] gap-0">
               <div className="bg-gray-900 border-r border-gray-800">
-                <div className="h-[70vh] overflow-y-auto">
-                  <PageRenderer website={previewWebsite} pageSlug="home" />
+                <div className="px-4 py-3 border-b border-gray-800 flex flex-wrap gap-2">
+                  {previewWebsite.pages.map((page) => (
+                    <button
+                      key={page.slug}
+                      onClick={() => setPreviewPageSlug(page.slug)}
+                      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition ${
+                        previewPageSlug === page.slug
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                      }`}
+                    >
+                      {page.title}
+                    </button>
+                  ))}
+                </div>
+                <div className="h-[64vh] overflow-y-auto">
+                  <PageRenderer website={previewWebsite} pageSlug={previewPageSlug} />
                 </div>
               </div>
               <div className="p-6 space-y-5">
@@ -1269,6 +1291,16 @@ function TemplateSelector({ onSelect }: { onSelect: (templateId: string) => void
                   <p className="text-sm text-gray-200 mt-2 leading-relaxed">
                     {previewTemplate.description}
                   </p>
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Pages included</h4>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {previewWebsite.pages.map((page) => (
+                      <span key={`meta-${page.slug}`} className="text-[11px] px-2 py-1 rounded-full bg-gray-800 text-gray-300">
+                        {page.title}
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider">Action list</h4>
